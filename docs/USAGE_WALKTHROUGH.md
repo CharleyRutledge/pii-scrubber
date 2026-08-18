@@ -1,6 +1,6 @@
 # pii-scrubber: step-by-step walkthrough
 
-This walkthrough is generated directly from a real, passing run of the CLI (see `tools/record_demo.py`) — every command and output below is the actual output produced by that run, not hand-written.
+This walkthrough is generated directly from a real, passing run of the CLI (see `tools/record_demo.py`) - every command and output below is the actual output produced by that run, not hand-written.
 
 ![demo](assets/demo.gif)
 

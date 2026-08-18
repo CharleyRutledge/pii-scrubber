@@ -4,22 +4,22 @@
 
 A Python library for scrubbing personally identifiable information (PII)
 from documents **before** you paste or upload them somewhere that isn't
-under your control — an LLM chat tool, a support ticket, a shared drive.
+under your control - an LLM chat tool, a support ticket, a shared drive.
 
 **Runs entirely on your machine. No network calls, no telemetry, nothing
 uploaded anywhere.** Detection is regex + a local, pretrained spaCy NER
-model doing inference only — it does not learn from, retain, or transmit
+model doing inference only - it does not learn from, retain, or transmit
 your documents. You can read exactly what it does: pattern rules live in
 [`rules.py`](src/pii_scrubber/rules.py), NER logic in
 [`ner.py`](src/pii_scrubber/ner.py).
 
 > **No PII scrubber is complete.** Regex and NER both have real blind
-> spots — see [Known limitations](#known-limitations) below, all of which
+> spots - see [Known limitations](#known-limitations) below, all of which
 > came from testing this against real documents. Spot-check the redacted
 > output before you rely on it, especially for anything sensitive.
 
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a step-by-step
-CLI walkthrough with a recorded terminal session — generated straight from a
+CLI walkthrough with a recorded terminal session - generated straight from a
 real, passing run of the CLI (`tools/record_demo.py`), so the commands and
 output shown are genuine, not hand-written.
 
@@ -99,7 +99,7 @@ redact_file("intake.pdf", output_path="intake_clean.pdf")
 redact_file("intake.pdf", ocr=True)
 # also OCRs embedded images (scanned IDs, screenshots) and blacks out
 # any image whose recognized text contains PII. Requires the `ocr` extra
-# and a system Tesseract install (see below) — off by default.
+# and a system Tesseract install (see below) - off by default.
 ```
 
 | File type | What's preserved |
@@ -143,18 +143,18 @@ username via the path.
 - **Country/format-specific identifiers you haven't added a rule for won't
   be caught.** The regex rules were built out against real US/Irish
   documents during development; a national ID format, postal code, or
-  phone format from elsewhere may need its own rule — see
+  phone format from elsewhere may need its own rule - see
   [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Without `ocr=True`, PII baked into an image is invisible to the
-  tool** — a photographed ID, a screenshot, a scanned signature. Only
+  tool** - a photographed ID, a screenshot, a scanned signature. Only
   real text layers are scanned by default.
 - **OCR-based image redaction blacks out the entire image**, not just the
   PII within it, since OCR text can't be reliably mapped back to exact
   pixel coordinates inside the image.
 - **A PDF's embedded font can occasionally have a broken glyph mapping**,
   causing text extraction to silently drop or mangle a character. The
-  tool detects this (`�` replacement characters) and warns you, or —
-  with `ocr=True` — falls back to rasterizing and OCR'ing that page
+  tool detects this (`�` replacement characters) and warns you, or -
+  with `ocr=True` - falls back to rasterizing and OCR'ing that page
   instead of trusting the broken text layer.
 
 ## Development
@@ -163,7 +163,7 @@ username via the path.
 pytest
 ```
 
-Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). For
+Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). For
 reporting a missed detection, see [SECURITY.md](SECURITY.md) (please don't
 post real documents or real PII in a public issue).
 

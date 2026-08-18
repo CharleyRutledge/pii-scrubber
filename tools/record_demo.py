@@ -1,7 +1,7 @@
 """Runs the CLI end-to-end against real fixture files, captures the actual
 terminal output of each step, renders it as an animated GIF of a terminal
 session, and writes a step-by-step Markdown guide from the same captured
-data — so the GIF and the docs can never drift out of sync with each other
+data - so the GIF and the docs can never drift out of sync with each other
 or with what the CLI actually does.
 
 Usage: python tools/record_demo.py [output_dir]
@@ -195,7 +195,7 @@ def _render_markdown(steps: list[_Step]) -> str:
         "# pii-scrubber: step-by-step walkthrough",
         "",
         "This walkthrough is generated directly from a real, passing run of the "
-        "CLI (see `tools/record_demo.py`) — every command and output below is "
+        "CLI (see `tools/record_demo.py`) - every command and output below is "
         "the actual output produced by that run, not hand-written.",
         "",
         "![demo](assets/demo.gif)",

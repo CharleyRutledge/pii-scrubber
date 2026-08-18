@@ -33,7 +33,7 @@ def redact_file(
 
     `ocr` (PDF only) additionally OCRs embedded images and fully blacks out
     any image whose recognized text contains PII (e.g. a photographed ID or
-    a screenshot). Requires the `ocr` extra and a system Tesseract install —
+    a screenshot). Requires the `ocr` extra and a system Tesseract install -
     see `pii_scrubber.ocr` for setup. Off by default since it's slower and
     pulls in an extra system dependency.
     """
@@ -178,7 +178,7 @@ def _redact_pdf(
                 else:
                     warnings.warn(
                         f"Page {page_number + 1} has text the PDF's font can't decode "
-                        "properly (shows up as �) — PII inside it may not be fully "
+                        "properly (shows up as �) - PII inside it may not be fully "
                         "redacted. Pass ocr=True (requires the `ocr` extra + Tesseract) "
                         "to redact via OCR instead.",
                         stacklevel=2,
@@ -214,7 +214,7 @@ def _redact_page_via_ocr(page, fitz, use_ner, ner_model, ner_labels) -> None:
     # Reconstruct OCR'd text with a char-offset -> word-index map so PII
     # spans (which can cover multiple words) can be traced back to boxes.
     # Start a new line in the reconstruction whenever OCR's own line/block
-    # numbering changes, instead of flattening everything to one line —
+    # numbering changes, instead of flattening everything to one line -
     # otherwise line-anchored regexes (e.g. address detection) can't tell
     # where a line ends and could match across the whole page.
     parts = []
@@ -247,7 +247,7 @@ def _redact_page_via_ocr(page, fitz, use_ner, ner_model, ner_labels) -> None:
             continue
 
         # One rect per OCR line the match touches, rather than a single box
-        # spanning every matched word — keeps a mis-scoped match from ever
+        # spanning every matched word - keeps a mis-scoped match from ever
         # covering unrelated content between its first and last line.
         by_line: dict[tuple, list[dict]] = {}
         for w in matching_words:

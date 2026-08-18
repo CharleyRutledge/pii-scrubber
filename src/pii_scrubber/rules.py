@@ -49,7 +49,7 @@ _MAC_ADDRESS = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 # Irish PPS Number: 7 digits + a checksum letter, optionally + a second
 # letter that's always A or W, e.g. "8516676H", "1234567HA". No word-boundary
 # anchors, so it still catches copies glued to junk text/watermarks
-# (e.g. "gfd8516676Hgfd") — the fixed A/W second letter keeps the match tight
+# (e.g. "gfd8516676Hgfd") - the fixed A/W second letter keeps the match tight
 # instead of greedily eating trailing junk letters.
 _PPS_NUMBER = re.compile(r"(?<!\d)\d{7}[A-Za-z](?:[AaWw])?")
 
@@ -58,7 +58,7 @@ _PPS_NUMBER = re.compile(r"(?<!\d)\d{7}[A-Za-z](?:[AaWw])?")
 _EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z]\s[0-9A-Za-z]{4}\b")
 
 # A short window of text around a common street-type suffix is treated as an
-# address. Deliberately NOT anchored to line boundaries (^...$) — text that's
+# address. Deliberately NOT anchored to line boundaries (^...$) - text that's
 # been reconstructed without real newlines (e.g. OCR word-joining) would
 # otherwise match from the first such keyword to the last, potentially
 # swallowing the entire document. Bounding the context window keeps the
@@ -77,7 +77,7 @@ _TITLED_NAME = re.compile(
     r"\s+[A-Z][A-Za-z'-]*(?:\s+[A-Z][A-Za-z'-]*){1,3}\b"
 )
 
-# file:// URIs — often leak a local OS username via the path, e.g.
+# file:// URIs - often leak a local OS username via the path, e.g.
 # "file:///C:/Users/jane/Downloads/resume.pdf".
 _FILE_URI = re.compile(r"\bfile:/{1,3}[^\s<>\"')\]]+", re.IGNORECASE)
 

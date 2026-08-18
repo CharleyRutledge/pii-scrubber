@@ -1,6 +1,6 @@
 """End-to-end tests through the actual CLI surface (subprocess), covering
 the real path a user takes: run `pii-scrubber scrub`/`redact` against a
-real file on disk and check the real file/stdout it produces — as opposed
+real file on disk and check the real file/stdout it produces - as opposed
 to the unit tests elsewhere that call library functions directly.
 """
 
@@ -50,7 +50,7 @@ def test_cli_scrub_no_ner_flag_skips_person_detection(tmp_path):
     assert "[EMAIL]" in with_ner.stdout
     assert "[EMAIL]" in without_ner.stdout
     # The all-caps titled-name regex rule still fires without NER, since
-    # it's a regex rule, not spaCy — both should redact the name.
+    # it's a regex rule, not spaCy - both should redact the name.
     assert "CHARLEY RUTLEDGE" not in with_ner.stdout
     assert "CHARLEY RUTLEDGE" not in without_ner.stdout
 

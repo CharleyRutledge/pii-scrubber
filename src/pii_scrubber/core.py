@@ -43,7 +43,7 @@ def _find_adjacent_location_lines(text: str, matches: list[EntityMatch]) -> list
     "LIMERICK" on the line between a street and an Eircode) often has too
     little sentence context for generic NER to recognize as a location.
     Structurally, a short all-caps line directly touching an already-found
-    ADDRESS/EIRCODE line is very likely the city/town — catch it here.
+    ADDRESS/EIRCODE line is very likely the city/town - catch it here.
     """
     lines = text.splitlines(keepends=True)
     line_starts = []

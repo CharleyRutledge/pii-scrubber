@@ -1,6 +1,6 @@
 """Runs the actual demo recorder (tools/record_demo.py) end-to-end and
 verifies it produced a real, valid GIF and a matching walkthrough doc whose
-content is the CLI's genuine output — not that a video "looks right", but
+content is the CLI's genuine output - not that a video "looks right", but
 that the pipeline that generates our documentation actually runs correctly
 and that the PII in the demo fixture was, in fact, redacted.
 """
@@ -35,7 +35,7 @@ def test_recorder_produces_valid_multi_frame_gif(demo_result):
 def test_recorder_doc_reflects_real_redaction(demo_result):
     doc_text = demo_result["doc_path"].read_text(encoding="utf-8")
 
-    # The doc must show the tool actually redacting the fixture's PII —
+    # The doc must show the tool actually redacting the fixture's PII -
     # not a hand-written claim that it works.
     assert "[EMAIL]" in doc_text
     assert "[SSN]" in doc_text

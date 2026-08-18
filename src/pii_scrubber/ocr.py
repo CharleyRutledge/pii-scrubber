@@ -1,5 +1,5 @@
 """OCR support for detecting PII baked into images (scanned IDs, photos,
-screenshots) rather than present as real text. Optional — requires the
+screenshots) rather than present as real text. Optional - requires the
 `ocr` extra (pytesseract + Pillow) plus a system Tesseract OCR install,
 which pip cannot provide on its own.
 """
@@ -58,7 +58,7 @@ def ocr_words_with_boxes(image_bytes: bytes) -> list[dict]:
 
     Callers reconstructing text from these words should start a new line
     whenever (block_num, line_num) changes, rather than joining everything
-    with spaces — otherwise line-anchored regexes (e.g. address detection)
+    with spaces - otherwise line-anchored regexes (e.g. address detection)
     can't tell where one visual line ends and the next begins.
     """
     pytesseract = _configure_tesseract()

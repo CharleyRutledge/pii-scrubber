@@ -63,11 +63,25 @@ _EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z]\s[0-9A-Za-z]{4}\b")
 # otherwise match from the first such keyword to the last, potentially
 # swallowing the entire document. Bounding the context window keeps the
 # blast radius small regardless of whether real line breaks are present.
+#
+# Deliberately case-sensitive (Title Case or ALL CAPS only, no re.IGNORECASE):
+# several of these words (Close, Court, Park, Row, Way, Place) are common
+# English words in their own right ("at the close of the meeting"). Matching
+# them case-insensitively caused real false positives that swallowed nearby
+# PII inside this rule's wide context window. Requiring capitalization
+# doesn't fully eliminate the ambiguity (a sentence-initial "Park the car"
+# still capitalizes "Park") but removes the far more common mid-sentence
+# lowercase collision.
+_ADDRESS_SUFFIXES = [
+    "Road", "Rd", "Street", "St", "Avenue", "Ave", "Lane", "Ln", "Drive", "Dr",
+    "Way", "Close", "Court", "Ct", "Cottages", "Terrace", "Place", "Pl",
+    "Square", "Sq", "Grove", "Park", "Crescent", "Row", "Walk", "Boulevard", "Blvd",
+]
+_ADDRESS_SUFFIX_PATTERN = "|".join(
+    f"{w}\\.?|{w.upper()}\\.?" for w in _ADDRESS_SUFFIXES
+)
 _ADDRESS_LINE = re.compile(
-    r"[^\n]{0,40}\b(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Lane|Ln\.?|Drive|Dr\.?|Way|"
-    r"Close|Court|Ct\.?|Cottages|Terrace|Place|Pl\.?|Square|Sq\.?|Grove|Park|"
-    r"Crescent|Row|Walk|Boulevard|Blvd\.?)\b[^\n]{0,40}",
-    re.IGNORECASE,
+    rf"[^\n]{{0,40}}\b(?:{_ADDRESS_SUFFIX_PATTERN})\b[^\n]{{0,40}}"
 )
 
 # Title-prefixed personal name, e.g. "Mr. Jane Doe" or "MR CHARLEY RUTLEDGE".

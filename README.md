@@ -134,6 +134,19 @@ username via the path.
 
 ## Known limitations
 
+- **NER is English-only and unreliable on other languages.** The bundled
+  spaCy model (`en_core_web_sm`) was trained on English. On non-English
+  text it will miss most names/places, and can misclassify ordinary words
+  as PERSON/ORGANIZATION (e.g. Spanish "gobierno"/"trimestre" flagged as
+  ORGANIZATION in testing). Regex rules (email, phone, credit card, etc.)
+  are largely language-agnostic and still work. For non-English documents,
+  treat NER output as noisy and either spot-check carefully or use
+  `use_ner=False` and rely on regex rules alone. Emails were reliably
+  redacted across every language tested (English, Spanish, French, German,
+  Chinese, Arabic, Japanese); name/location detection was not.
+- **Rare NER false positives on placeholder/non-name text** (e.g. spaCy
+  occasionally tags "Lorem ipsum" boilerplate as PERSON). Harmless in
+  practice, but a reminder that NER output isn't ground truth.
 - **Generic NER on real documents misses things.** spaCy's small English
   model can fail to recognize a name with no surrounding sentence context
   (e.g. a signer's name alone on a line in a letter footer), even when it

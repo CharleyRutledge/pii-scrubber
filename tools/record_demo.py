@@ -7,6 +7,7 @@ or with what the CLI actually does.
 Usage: python tools/record_demo.py [output_dir]
 """
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -47,16 +48,76 @@ def _run(command: list[str], cwd: Path) -> tuple[str, int]:
     return combined, proc.returncode
 
 
+_INTAKE_TEXT = (
+    "Patient Intake Form\n\n"
+    "Name: Jane Doe\n"
+    "Email: jane.doe@example.com\n"
+    "Phone: 555-123-4567\n"
+    "SSN: 123-45-6789\n"
+    "Employer: Acme Corp, located in Seattle.\n"
+)
+
+
 def _setup_fixtures(workspace: Path) -> None:
-    (workspace / "patient_intake.txt").write_text(
-        "Patient Intake Form\n\n"
-        "Name: Jane Doe\n"
-        "Email: jane.doe@example.com\n"
-        "Phone: 555-123-4567\n"
-        "SSN: 123-45-6789\n"
-        "Employer: Acme Corp, located in Seattle.\n",
+    (workspace / "patient_intake.txt").write_text(_INTAKE_TEXT, encoding="utf-8")
+
+    (workspace / "notes.md").write_text(
+        "# Follow-up notes\n\n"
+        "Reach **Jane Doe** at jane.doe@example.com or 555-123-4567 "
+        "before the Friday deadline.\n",
         encoding="utf-8",
     )
+
+    (workspace / "profile.html").write_text(
+        "<html><body>\n"
+        "<h1>Contact card</h1>\n"
+        "<p>Jane Doe - jane.doe@example.com - 555-123-4567</p>\n"
+        "<p>LinkedIn: linkedin.com/in/janedoe</p>\n"
+        "</body></html>\n",
+        encoding="utf-8",
+    )
+
+    (workspace / "contacts.csv").write_text(
+        "name,email,phone\n"
+        "Jane Doe,jane.doe@example.com,555-123-4567\n"
+        "John Smith,john.smith@example.com,555-987-6543\n",
+        encoding="utf-8",
+    )
+
+    (workspace / "record.json").write_text(
+        json.dumps(
+            {
+                "patient": {
+                    "name": "Jane Doe",
+                    "email": "jane.doe@example.com",
+                    "phone": "555-123-4567",
+                }
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    import docx
+
+    document = docx.Document()
+    document.add_paragraph("Employment Letter")
+    document.add_paragraph(
+        "This confirms Jane Doe (jane.doe@example.com, 555-123-4567) "
+        "is employed at Acme Corp."
+    )
+    document.save(str(workspace / "letter.docx"))
+
+    import pymupdf
+
+    pdf = pymupdf.open()
+    page = pdf.new_page()
+    page.insert_text(
+        (72, 72),
+        "Please contact Jane Doe at jane.doe@example.com or 555-123-4567.",
+    )
+    pdf.save(str(workspace / "notice.pdf"))
+    pdf.close()
 
 
 class _Step:
@@ -68,32 +129,53 @@ class _Step:
         self.returncode = 0
 
 
+_SCRUB_DEMO_FILES = [
+    ("patient_intake.txt", "plain text"),
+    ("notes.md", "Markdown"),
+    ("profile.html", "HTML"),
+    ("contacts.csv", "CSV"),
+    ("record.json", "JSON"),
+    ("letter.docx", "Word (.docx)"),
+    ("notice.pdf", "PDF"),
+]
+
+
 def _build_steps(python_exe: str) -> list[_Step]:
     cli = [python_exe, "-m", "pii_scrubber.cli"]
-    return [
+    steps = [
         _Step(
             "See what the CLI offers.",
             [*cli, "--help"],
             "pii-scrubber --help",
         ),
-        _Step(
-            "Scrub a document and preview the redacted text + a summary count, "
-            "without writing any file.",
-            [*cli, "scrub", "patient_intake.txt"],
-            "pii-scrubber scrub patient_intake.txt",
-        ),
+    ]
+
+    for filename, format_label in _SCRUB_DEMO_FILES:
+        steps.append(
+            _Step(
+                f"Scrub a {format_label} file and preview the redacted text + "
+                "a summary count, without writing any file.",
+                [*cli, "scrub", filename],
+                f"pii-scrubber scrub {filename}",
+            )
+        )
+
+    steps.append(
         _Step(
             "Write a redacted copy of the file, format preserved.",
             [*cli, "redact", "patient_intake.txt"],
             "pii-scrubber redact patient_intake.txt",
-        ),
+        )
+    )
+    steps.append(
         _Step(
             "Confirm the original PII is gone from the redacted file.",
             [python_exe, "-c",
              "print(open('patient_intake_redacted.txt', encoding='utf-8').read())"],
             "cat patient_intake_redacted.txt",
-        ),
-    ]
+        )
+    )
+    return steps
 
 
 def _wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:

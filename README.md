@@ -16,17 +16,30 @@ your documents. You can read exactly what it does: pattern rules live in
 > came from testing this against real documents. Spot-check the redacted
 > output before you rely on it, especially for anything sensitive.
 
+See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a step-by-step
+CLI walkthrough with a recorded terminal session — generated straight from a
+real, passing run of the CLI (`tools/record_demo.py`), so the commands and
+output shown are genuine, not hand-written.
+
 ## Install
+
+```bash
+pip install -e ".[all]"   # pdf + docx + ocr support
+python -m spacy download en_core_web_sm
+```
+
+Then, from the command line:
+
+```bash
+pii-scrubber scrub your_document.pdf
+```
+
+For library development (running the test suite, contributing), use the
+`dev` extra instead:
 
 ```bash
 pip install -e ".[dev]"
 python -m spacy download en_core_web_sm
-```
-
-Optional extras for document formats:
-
-```bash
-pip install -e ".[all]"   # pdf + docx + ocr support
 ```
 
 `ocr` also requires a system Tesseract OCR install (not installable via pip):
@@ -36,6 +49,20 @@ winget install --id UB-Mannheim.TesseractOCR
 ```
 
 ## Usage
+
+### Command line
+
+```bash
+pii-scrubber scrub document.pdf          # print redacted text + counts
+pii-scrubber redact document.pdf         # write document_redacted.pdf
+pii-scrubber redact document.pdf --ocr   # also redact PII baked into images
+pii-scrubber redact document.pdf -o clean.pdf --no-ner  # regex rules only
+```
+
+See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full
+recorded walkthrough of these commands against a real file.
+
+### Python API
 
 ```python
 from pii_scrubber import scrub, scrub_file

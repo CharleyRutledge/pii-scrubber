@@ -15,7 +15,13 @@ python -m spacy download en_core_web_sm
 Optional extras for document formats:
 
 ```bash
-pip install -e ".[all]"   # pdf + docx support
+pip install -e ".[all]"   # pdf + docx + ocr support
+```
+
+`ocr` also requires a system Tesseract OCR install (not installable via pip):
+
+```powershell
+winget install --id UB-Mannheim.TesseractOCR
 ```
 
 ## Usage
@@ -49,6 +55,11 @@ out_path = redact_file("contract.docx")
 
 redact_file("intake.pdf", output_path="intake_clean.pdf")
 # PDF: original layout/images kept, PII burned out with black boxes
+
+redact_file("intake.pdf", ocr=True)
+# also OCRs embedded images (scanned IDs, screenshots) and blacks out
+# any image whose recognized text contains PII. Requires the `ocr` extra
+# and a system Tesseract install (see below) — off by default.
 ```
 
 | File type | What's preserved |
@@ -72,8 +83,24 @@ scrub(text, use_ner=False)
 
 | Label | Source |
 |---|---|
-| EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN | regex |
-| PERSON, LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
+| EMAIL, PHONE, SSN, PPS_NUMBER, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, EIRCODE, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
+| PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
+| LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
+
+`PPS_NUMBER` is the Irish equivalent of an SSN; `EIRCODE` is the Irish postal
+code. `FILE_PATH` catches `file://` URIs, which often leak a local OS
+username via the path.
+
+### Known limitations
+
+- spaCy's NER model can miss all-caps names or flag unrelated capitalized
+  words (e.g. "PAYE", "MyAccount") as ORGANIZATION — regex rules cover the
+  common gaps but this isn't perfect for every document layout.
+- Without `ocr=True`, PII baked into an image (a photographed ID, a
+  screenshot) is not detected — only real text layers are scanned.
+- OCR-based image redaction blacks out the *entire* image if any PII is
+  found in it, since OCR text can't be reliably mapped back to exact pixel
+  coordinates within the image.
 
 ## Development
 

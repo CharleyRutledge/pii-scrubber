@@ -21,11 +21,18 @@ def redact_file(
     use_ner: bool = True,
     ner_model: str = "en_core_web_sm",
     ner_labels: set[str] | None = None,
+    ocr: bool = False,
 ) -> Path:
     """Write a redacted copy of `path` in the same file format and return its path.
 
     If `output_path` is omitted, writes next to the original as
     "<stem>_redacted<suffix>".
+
+    `ocr` (PDF only) additionally OCRs embedded images and fully blacks out
+    any image whose recognized text contains PII (e.g. a photographed ID or
+    a screenshot). Requires the `ocr` extra and a system Tesseract install —
+    see `pii_scrubber.ocr` for setup. Off by default since it's slower and
+    pulls in an extra system dependency.
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -45,7 +52,7 @@ def redact_file(
     elif suffix == ".json":
         _redact_json(path, output_path, _scrub)
     elif suffix == ".pdf":
-        _redact_pdf(path, output_path, use_ner, ner_model, ner_labels)
+        _redact_pdf(path, output_path, use_ner, ner_model, ner_labels, ocr)
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
 
@@ -125,6 +132,7 @@ def _redact_pdf(
     use_ner: bool,
     ner_model: str,
     ner_labels: set[str] | None,
+    ocr: bool,
 ) -> None:
     try:
         import pymupdf as fitz
@@ -136,18 +144,46 @@ def _redact_pdf(
     with fitz.open(str(path)) as doc:
         for page in doc:
             page_text = page.get_text()
-            if not page_text.strip():
-                continue
+            if page_text.strip():
+                result = scrub(
+                    page_text, use_ner=use_ner, ner_model=ner_model, ner_labels=ner_labels
+                )
+                pii_strings = {e.text for e in result.entities if e.text.strip()}
 
-            result = scrub(
-                page_text, use_ner=use_ner, ner_model=ner_model, ner_labels=ner_labels
-            )
-            pii_strings = {e.text for e in result.entities if e.text.strip()}
+                for pii_text in pii_strings:
+                    for rect in page.search_for(pii_text):
+                        page.add_redact_annot(rect, fill=(0, 0, 0))
 
-            for pii_text in pii_strings:
-                for rect in page.search_for(pii_text):
-                    page.add_redact_annot(rect, fill=(0, 0, 0))
+            if ocr:
+                _redact_page_images(doc, page, fitz, use_ner, ner_model, ner_labels)
 
             page.apply_redactions()
 
         doc.save(str(output_path))
+
+
+def _redact_page_images(doc, page, fitz, use_ner, ner_model, ner_labels) -> None:
+    """OCR each image on the page; if any PII is found in it, black out the
+    whole image region. We can't reliably map OCR'd text back to pixel
+    coordinates within the image, so this over-redacts (whole image, not
+    just the PII substring) rather than risk leaving PII visible.
+    """
+    from .ocr import ocr_image_bytes
+
+    for img in page.get_images(full=True):
+        xref = img[0]
+        try:
+            image_bytes = doc.extract_image(xref)["image"]
+            ocr_text = ocr_image_bytes(image_bytes)
+        except Exception:
+            continue
+
+        if not ocr_text.strip():
+            continue
+
+        result = scrub(ocr_text, use_ner=use_ner, ner_model=ner_model, ner_labels=ner_labels)
+        if not result.entities:
+            continue
+
+        for rect in page.get_image_rects(xref):
+            page.add_redact_annot(rect, fill=(0, 0, 0))

@@ -9,6 +9,7 @@ import re
 from typing import Iterator
 
 from .entities import EntityMatch
+from .national_ids import find_national_id_matches
 
 
 def _luhn_ok(digits: str) -> bool:
@@ -149,5 +150,7 @@ def find_regex_matches(text: str) -> list[EntityMatch]:
         matches.append(
             EntityMatch("CREDIT_CARD", m.group(), m.start(), m.end(), source="regex")
         )
+
+    matches.extend(find_national_id_matches(text))
 
     return matches

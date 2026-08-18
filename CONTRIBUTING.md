@@ -26,6 +26,30 @@ Most contributions will be a new regex pattern in
 
 Add the new pattern and its label to `_SIMPLE_RULES` in the same file.
 
+## Adding a national ID format
+
+Country-specific ID numbers (Irish PPS, UK NINO, French INSEE, etc.) live
+in [`src/pii_scrubber/national_ids.py`](src/pii_scrubber/national_ids.py)
+rather than `rules.py`, since several have a real published checksum
+algorithm worth implementing (the same idea as the Luhn check already used
+for `CREDIT_CARD`) - a validated checksum keeps a plain N-digit format from
+matching every unrelated N-digit number in a document.
+
+To add one:
+1. Check if [Faker](https://faker.readthedocs.io/) has a locale provider
+   for the country (`Faker(locale).ssn()`) - useful for generating test
+   vectors, but verify by reading its provider source
+   (`faker/providers/ssn/<locale>/__init__.py`) whether it actually
+   implements the real checksum or just fills in random digits (Korea's
+   doesn't, for example - see the comment on `_KR_RRN`).
+2. If a checksum exists, implement and validate against it; if the format
+   doesn't have one, a distinctive-enough shape (see `_UK_NINO`) is an
+   acceptable fallback.
+3. Add tests to `tests/test_national_ids.py`, with at least one valid and
+   one checksum-invalid example.
+4. Run `python tools/audit_national_ids.py` to sanity-check detection
+   rate against generated documents for that locale (if Faker supports it).
+
 ## Adding a file format
 
 File extraction lives in `src/pii_scrubber/extractors.py`

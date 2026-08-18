@@ -124,13 +124,18 @@ scrub(text, use_ner=False)
 
 | Label | Source |
 |---|---|
-| EMAIL, PHONE, SSN, PPS_NUMBER, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, EIRCODE, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
+| EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
+| National IDs: `PPS_NUMBER` (IE), `UK_NINO` (GB), `FR_INSEE` (FR), `NL_BSN` (NL), `PL_PESEL` (PL), `BR_CPF` (BR), `CN_RESIDENT_ID` (CN), `KR_RRN` (KR), `CA_SIN` (CA), `SE_PERSONNUMMER` (SE); `EIRCODE` (IE postal code) | regex, checksum-validated where a real algorithm exists (Luhn, elfproef, ISO 7064, etc.) |
 | PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
 | LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
 
-`PPS_NUMBER` is the Irish equivalent of an SSN; `EIRCODE` is the Irish postal
-code. `FILE_PATH` catches `file://` URIs, which often leak a local OS
-username via the path.
+`FILE_PATH` catches `file://` URIs, which often leak a local OS username via
+the path. National ID rules were validated against hundreds of
+locale-appropriate synthetic documents generated with
+[Faker](https://faker.readthedocs.io/) - see `tools/audit_national_ids.py`.
+Coverage is still partial: Germany, Spain, Italy, Norway, Russia, Turkey,
+and others don't have a dedicated rule yet - contributions welcome (see
+[CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## Known limitations
 

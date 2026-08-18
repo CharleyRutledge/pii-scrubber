@@ -23,7 +23,7 @@ pdf = ["pymupdf>=1.24"]
 docx = ["python-docx>=1.1"]
 ocr = ["pytesseract>=0.3", "Pillow>=10.0"]
 all = ["pymupdf>=1.24", "python-docx>=1.1", "pytesseract>=0.3", "Pillow>=10.0"]
-dev = ["pytest>=7.4", "pymupdf>=1.24", "python-docx>=1.1", "pytesseract>=0.3", "Pillow>=10.0"]
+dev = ["pytest>=7.4", "pymupdf>=1.24", "python-docx>=1.1", "pytesseract>=0.3", "Pillow>=10.0", "Faker>=20.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

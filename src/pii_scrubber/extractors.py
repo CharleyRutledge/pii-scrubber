@@ -4,7 +4,10 @@ import csv
 import json
 from pathlib import Path
 
+from .html_tools import extract_html_text
+
 _TEXT_SUFFIXES = {".txt", ".md"}
+_HTML_SUFFIXES = {".html", ".htm"}
 
 
 def extract_text(path: str | Path) -> str:
@@ -13,6 +16,8 @@ def extract_text(path: str | Path) -> str:
 
     if suffix in _TEXT_SUFFIXES:
         return path.read_text(encoding="utf-8")
+    if suffix in _HTML_SUFFIXES:
+        return extract_html_text(path.read_text(encoding="utf-8"))
     if suffix == ".pdf":
         return _extract_pdf(path)
     if suffix == ".docx":

@@ -39,8 +39,8 @@ print(result.counts)
 result = scrub_file("contract.docx")
 ```
 
-Supported file types via `scrub_file`: `.txt`, `.md`, `.pdf`, `.docx`, `.csv`,
-`.json`.
+Supported file types via `scrub_file`: `.txt`, `.md`, `.html`/`.htm`, `.pdf`,
+`.docx`, `.csv`, `.json`.
 
 ### Format-preserving redaction
 
@@ -69,6 +69,7 @@ redact_file("intake.pdf", ocr=True)
 | `.csv` | rows/columns, redacted per cell |
 | `.json` | keys and structure, string values redacted, numbers/bools untouched |
 | `.pdf` | original layout and images; PII is truly removed (not just hidden) and covered with a black box, not a `[LABEL]` |
+| `.html` / `.htm` | tags/attributes/scripts/styles untouched, only visible text redacted |
 
 ### Disabling NER
 

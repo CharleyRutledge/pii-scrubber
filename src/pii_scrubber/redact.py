@@ -6,6 +6,7 @@ original file format, instead of flattened plain text.
 .csv      -> redacted per-cell, rows/columns kept
 .json     -> string values redacted in place, structure/keys kept
 .pdf      -> original layout/images kept; black boxes burned over PII text
+.html/.htm -> tags/attributes kept, only visible text nodes redacted
 """
 
 import csv
@@ -13,6 +14,7 @@ import json
 from pathlib import Path
 
 from .core import scrub
+from .html_tools import split_html_segments
 
 
 def redact_file(
@@ -45,6 +47,8 @@ def redact_file(
 
     if suffix in {".txt", ".md"}:
         _redact_plain_text(path, output_path, _scrub)
+    elif suffix in {".html", ".htm"}:
+        _redact_html(path, output_path, _scrub)
     elif suffix == ".docx":
         _redact_docx(path, output_path, _scrub)
     elif suffix == ".csv":
@@ -62,6 +66,15 @@ def redact_file(
 def _redact_plain_text(path: Path, output_path: Path, scrub_fn) -> None:
     text = path.read_text(encoding="utf-8")
     output_path.write_text(scrub_fn(text), encoding="utf-8")
+
+
+def _redact_html(path: Path, output_path: Path, scrub_fn) -> None:
+    html = path.read_text(encoding="utf-8")
+    segments = split_html_segments(html)
+    rebuilt = "".join(
+        seg if is_tag_or_skipped else scrub_fn(seg) for is_tag_or_skipped, seg in segments
+    )
+    output_path.write_text(rebuilt, encoding="utf-8")
 
 
 def _set_paragraph_text(paragraph, new_text: str) -> None:

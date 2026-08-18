@@ -1,0 +1,51 @@
+# Contributing
+
+## Setup
+
+```bash
+git clone https://github.com/CharleyRutledge/pii-scrubber.git
+cd pii-scrubber
+pip install -e ".[dev]"
+python -m spacy download en_core_web_sm
+pytest
+```
+
+## Adding a detection rule
+
+Most contributions will be a new regex pattern in
+[`src/pii_scrubber/rules.py`](src/pii_scrubber/rules.py) — a good rule:
+
+- Uses a `\b` or negative-lookbehind/lookahead boundary appropriate to the
+  format, not `^`/`$` line anchors (text isn't always reconstructed with
+  real line breaks — see the `ADDRESS` rule's comment for why this matters).
+- Is bounded in the worst case — avoid patterns that could match an
+  unbounded amount of surrounding text.
+- Has a test in `tests/test_rules.py` covering at least one true positive
+  and, where there's an obvious false-positive risk, one string that
+  should *not* match.
+
+Add the new pattern and its label to `_SIMPLE_RULES` in the same file.
+
+## Adding a file format
+
+File extraction lives in `src/pii_scrubber/extractors.py`
+(`extract_text`/`scrub_file`) and format-preserving redaction lives in
+`src/pii_scrubber/redact.py` (`redact_file`). A new format needs both:
+plain extraction for `scrub_file`, and an in-place redaction path for
+`redact_file` that preserves the original structure as much as possible.
+
+## Tests
+
+```bash
+pytest -v
+```
+
+All new rules and file-format support should ship with tests. CI
+(`.github/workflows/tests.yml`) runs the suite on every push and PR.
+
+## Reporting a missed detection
+
+If you find real PII the tool fails to catch, please don't post the
+document or the exact PII value in a public issue. Describe the *shape*
+of what was missed (e.g. "UK National Insurance numbers aren't detected")
+and, if possible, a synthetic/fake example that reproduces it.

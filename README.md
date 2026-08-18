@@ -1,9 +1,20 @@
 # pii-scrubber
 
-A Python library for scrubbing personally identifiable information (PII) from
-documents. Combines regex rules for structured PII (emails, phone numbers,
-SSNs, credit cards, IP addresses) with spaCy NER for free-text PII (names,
-locations, organizations).
+A Python library for scrubbing personally identifiable information (PII)
+from documents **before** you paste or upload them somewhere that isn't
+under your control — an LLM chat tool, a support ticket, a shared drive.
+
+**Runs entirely on your machine. No network calls, no telemetry, nothing
+uploaded anywhere.** Detection is regex + a local, pretrained spaCy NER
+model doing inference only — it does not learn from, retain, or transmit
+your documents. You can read exactly what it does: pattern rules live in
+[`rules.py`](src/pii_scrubber/rules.py), NER logic in
+[`ner.py`](src/pii_scrubber/ner.py).
+
+> **No PII scrubber is complete.** Regex and NER both have real blind
+> spots — see [Known limitations](#known-limitations) below, all of which
+> came from testing this against real documents. Spot-check the redacted
+> output before you rely on it, especially for anything sensitive.
 
 ## Install
 
@@ -92,19 +103,41 @@ scrub(text, use_ner=False)
 code. `FILE_PATH` catches `file://` URIs, which often leak a local OS
 username via the path.
 
-### Known limitations
+## Known limitations
 
-- spaCy's NER model can miss all-caps names or flag unrelated capitalized
-  words (e.g. "PAYE", "MyAccount") as ORGANIZATION — regex rules cover the
-  common gaps but this isn't perfect for every document layout.
-- Without `ocr=True`, PII baked into an image (a photographed ID, a
-  screenshot) is not detected — only real text layers are scanned.
-- OCR-based image redaction blacks out the *entire* image if any PII is
-  found in it, since OCR text can't be reliably mapped back to exact pixel
-  coordinates within the image.
+- **Generic NER on real documents misses things.** spaCy's small English
+  model can fail to recognize a name with no surrounding sentence context
+  (e.g. a signer's name alone on a line in a letter footer), even when it
+  gets the same name right in a full sentence. A structural heuristic
+  catches some of these (a short all-caps line next to a detected address
+  is treated as a place name), but this isn't exhaustive.
+- **Country/format-specific identifiers you haven't added a rule for won't
+  be caught.** The regex rules were built out against real US/Irish
+  documents during development; a national ID format, postal code, or
+  phone format from elsewhere may need its own rule — see
+  [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Without `ocr=True`, PII baked into an image is invisible to the
+  tool** — a photographed ID, a screenshot, a scanned signature. Only
+  real text layers are scanned by default.
+- **OCR-based image redaction blacks out the entire image**, not just the
+  PII within it, since OCR text can't be reliably mapped back to exact
+  pixel coordinates inside the image.
+- **A PDF's embedded font can occasionally have a broken glyph mapping**,
+  causing text extraction to silently drop or mangle a character. The
+  tool detects this (`�` replacement characters) and warns you, or —
+  with `ocr=True` — falls back to rasterizing and OCR'ing that page
+  instead of trusting the broken text layer.
 
 ## Development
 
 ```bash
 pytest
 ```
+
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). For
+reporting a missed detection, see [SECURITY.md](SECURITY.md) (please don't
+post real documents or real PII in a public issue).
+
+## License
+
+[MIT](LICENSE)

@@ -16,10 +16,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-pdf = ["pdfplumber>=0.10"]
+pdf = ["pymupdf>=1.24"]
 docx = ["python-docx>=1.1"]
-all = ["pdfplumber>=0.10", "python-docx>=1.1"]
-dev = ["pytest>=7.4", "pdfplumber>=0.10", "python-docx>=1.1"]
+all = ["pymupdf>=1.24", "python-docx>=1.1"]
+dev = ["pytest>=7.4", "pymupdf>=1.24", "python-docx>=1.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

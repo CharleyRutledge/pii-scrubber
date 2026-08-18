@@ -36,6 +36,29 @@ result = scrub_file("contract.docx")
 Supported file types via `scrub_file`: `.txt`, `.md`, `.pdf`, `.docx`, `.csv`,
 `.json`.
 
+### Format-preserving redaction
+
+`scrub_file` returns flattened plain text. To instead get a redacted copy of
+the document in its **original file format**, use `redact_file`:
+
+```python
+from pii_scrubber import redact_file
+
+out_path = redact_file("contract.docx")
+# writes contract_redacted.docx next to the original, structure intact
+
+redact_file("intake.pdf", output_path="intake_clean.pdf")
+# PDF: original layout/images kept, PII burned out with black boxes
+```
+
+| File type | What's preserved |
+|---|---|
+| `.txt` / `.md` | plain text, redacted in place |
+| `.docx` | paragraphs and table cells, PII replaced with `[LABEL]` text |
+| `.csv` | rows/columns, redacted per cell |
+| `.json` | keys and structure, string values redacted, numbers/bools untouched |
+| `.pdf` | original layout and images; PII is truly removed (not just hidden) and covered with a black box, not a `[LABEL]` |
+
 ### Disabling NER
 
 Regex-only mode skips loading the spaCy model, useful when you only care

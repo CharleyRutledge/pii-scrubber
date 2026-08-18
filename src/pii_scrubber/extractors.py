@@ -27,16 +27,16 @@ def extract_text(path: str | Path) -> str:
 
 def _extract_pdf(path: Path) -> str:
     try:
-        import pdfplumber
+        import pymupdf as fitz
     except ImportError as exc:
         raise RuntimeError(
-            "PDF support requires pdfplumber. Install with: pip install pii-scrubber[pdf]"
+            "PDF support requires PyMuPDF. Install with: pip install pii-scrubber[pdf]"
         ) from exc
 
     pages = []
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            pages.append(page.extract_text() or "")
+    with fitz.open(str(path)) as doc:
+        for page in doc:
+            pages.append(page.get_text())
     return "\n".join(pages)
 
 

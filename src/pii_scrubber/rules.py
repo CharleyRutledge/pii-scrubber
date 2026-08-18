@@ -42,7 +42,11 @@ _IPV6 = re.compile(r"\b(?:[A-Fa-f0-9]{1,4}:){2,7}[A-Fa-f0-9]{0,4}\b")
 
 _US_PASSPORT = re.compile(r"(?<![A-Za-z0-9])[A-Z]{1,2}\d{6,9}(?![A-Za-z0-9])")
 
-_IBAN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b")
+# IBANs are conventionally displayed grouped in 4s with spaces (ISO 13616
+# presentation format, e.g. "GB29 NWBK 6016 1331 9268 19"), not as one
+# unbroken string - found by testing against a real invoice where the
+# compact-only pattern silently missed a space-formatted IBAN entirely.
+_IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,3})?\b")
 
 _MAC_ADDRESS = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 

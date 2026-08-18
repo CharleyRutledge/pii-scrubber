@@ -153,6 +153,15 @@ username via the path.
   gets the same name right in a full sentence. A structural heuristic
   catches some of these (a short all-caps line next to a detected address
   is treated as a place name), but this isn't exhaustive.
+- **Dense technical content (resumes/CVs, skills lists) can be
+  over-redacted.** Found by testing against a real technical resume: a
+  bulleted list of tool/framework names (Docker, jQuery, Neo4j, etc.) is
+  full of capitalized, proper-noun-shaped tokens that a generic NER model
+  frequently misreads as PERSON or ORGANIZATION - one real resume had 25
+  false PERSON matches before mitigation. A curated exclusion list
+  (`nonpii_terms.py`) fixes the common cases, but it's a fixed list, not
+  a general solution - an unlisted framework/tool name can still get
+  swept up. Contributions adding more terms are welcome.
 - **Country/format-specific identifiers you haven't added a rule for won't
   be caught.** The regex rules were built out against real US/Irish
   documents during development; a national ID format, postal code, or

@@ -4,6 +4,7 @@ import re
 from functools import lru_cache
 
 from .entities import EntityMatch
+from .nonpii_terms import is_known_nonpii_term
 
 # spaCy's NER relies heavily on casing; ALL-CAPS text (common in official
 # notices/letters) causes it to miss names/places it would otherwise catch.
@@ -63,6 +64,8 @@ def find_ner_matches(
         # normalized text has identical length/offsets to the original, so
         # slice the original to preserve its real casing in the match.
         original_span = text[ent.start_char:ent.end_char]
+        if is_known_nonpii_term(original_span):
+            continue
         matches.append(
             EntityMatch(our_label, original_span, ent.start_char, ent.end_char, source="ner")
         )

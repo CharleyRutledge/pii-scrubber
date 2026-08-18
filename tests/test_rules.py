@@ -52,3 +52,14 @@ def test_address_suffix_words_dont_match_as_common_lowercase_english():
 def test_address_suffix_still_matches_title_case_real_address():
     matches = find_regex_matches("47 Quins Cottages, Rossbrien Road")
     assert any(m.label == "ADDRESS" for m in matches)
+
+
+def test_iban_detected_with_conventional_spacing():
+    # Regression: found via a real invoice PDF - IBANs are conventionally
+    # displayed grouped in 4s with spaces (ISO 13616), not as one unbroken
+    # string, and the original regex silently missed the spaced form.
+    spaced = find_regex_matches("IBAN: GB29 NWBK 6016 1331 9268 19")
+    assert any(m.label == "IBAN" and m.text == "GB29 NWBK 6016 1331 9268 19" for m in spaced)
+
+    compact = find_regex_matches("IBAN: DE89370400440532013000")
+    assert any(m.label == "IBAN" and m.text == "DE89370400440532013000" for m in compact)

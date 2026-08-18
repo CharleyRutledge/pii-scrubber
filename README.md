@@ -1,5 +1,7 @@
 # pii-scrubber
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/m61v0m5kun)
+
 A Python library for scrubbing personally identifiable information (PII)
 from documents **before** you paste or upload them somewhere that isn't
 under your control — an LLM chat tool, a support ticket, a shared drive.

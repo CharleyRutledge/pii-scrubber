@@ -49,3 +49,37 @@ def ocr_image_bytes(image_bytes: bytes) -> str:
 
     with Image.open(BytesIO(image_bytes)) as img:
         return pytesseract.image_to_string(img)
+
+
+def ocr_words_with_boxes(image_bytes: bytes) -> list[dict]:
+    """Run OCR over raw image bytes and return each recognized word with its
+    pixel bounding box and position in the document's line/block structure:
+    [{"text", "left", "top", "width", "height", "block_num", "line_num"}, ...].
+
+    Callers reconstructing text from these words should start a new line
+    whenever (block_num, line_num) changes, rather than joining everything
+    with spaces — otherwise line-anchored regexes (e.g. address detection)
+    can't tell where one visual line ends and the next begins.
+    """
+    pytesseract = _configure_tesseract()
+    from PIL import Image
+
+    with Image.open(BytesIO(image_bytes)) as img:
+        data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+
+    words = []
+    for i, text in enumerate(data["text"]):
+        if not text.strip():
+            continue
+        words.append(
+            {
+                "text": text,
+                "left": data["left"][i],
+                "top": data["top"][i],
+                "width": data["width"][i],
+                "height": data["height"][i],
+                "block_num": data["block_num"][i],
+                "line_num": data["line_num"][i],
+            }
+        )
+    return words

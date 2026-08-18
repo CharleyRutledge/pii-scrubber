@@ -11,6 +11,7 @@ original file format, instead of flattened plain text.
 
 import csv
 import json
+import warnings
 from pathlib import Path
 
 from .core import scrub
@@ -155,8 +156,10 @@ def _redact_pdf(
         ) from exc
 
     with fitz.open(str(path)) as doc:
-        for page in doc:
+        for page_number, page in enumerate(doc):
             page_text = page.get_text()
+            has_broken_glyphs = "�" in page_text
+
             if page_text.strip():
                 result = scrub(
                     page_text, use_ner=use_ner, ner_model=ner_model, ner_labels=ner_labels
@@ -167,12 +170,95 @@ def _redact_pdf(
                     for rect in page.search_for(pii_text):
                         page.add_redact_annot(rect, fill=(0, 0, 0))
 
+            if has_broken_glyphs:
+                if ocr:
+                    _redact_page_via_ocr(
+                        page, fitz, use_ner, ner_model, ner_labels
+                    )
+                else:
+                    warnings.warn(
+                        f"Page {page_number + 1} has text the PDF's font can't decode "
+                        "properly (shows up as �) — PII inside it may not be fully "
+                        "redacted. Pass ocr=True (requires the `ocr` extra + Tesseract) "
+                        "to redact via OCR instead.",
+                        stacklevel=2,
+                    )
+
             if ocr:
                 _redact_page_images(doc, page, fitz, use_ner, ner_model, ner_labels)
 
             page.apply_redactions()
 
         doc.save(str(output_path))
+
+
+def _redact_page_via_ocr(page, fitz, use_ner, ner_model, ner_labels) -> None:
+    """Fallback for pages whose embedded font can't be decoded cleanly
+    (native text extraction yields U+FFFD replacement chars). Rasterizes
+    the page and redacts via OCR word bounding boxes instead, so PII isn't
+    silently missed just because the text layer is broken.
+    """
+    from .ocr import ocr_words_with_boxes
+
+    zoom = 3  # ~300dpi equivalent for reliable OCR accuracy
+    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+    img_bytes = pix.tobytes("png")
+
+    try:
+        words = ocr_words_with_boxes(img_bytes)
+    except Exception:
+        return
+    if not words:
+        return
+
+    # Reconstruct OCR'd text with a char-offset -> word-index map so PII
+    # spans (which can cover multiple words) can be traced back to boxes.
+    # Start a new line in the reconstruction whenever OCR's own line/block
+    # numbering changes, instead of flattening everything to one line —
+    # otherwise line-anchored regexes (e.g. address detection) can't tell
+    # where a line ends and could match across the whole page.
+    parts = []
+    offsets = []  # (start, end, word_index)
+    cursor = 0
+    prev_line_key = None
+    for i, w in enumerate(words):
+        line_key = (w["block_num"], w["line_num"])
+        if prev_line_key is not None and line_key != prev_line_key:
+            parts.append("\n")
+            cursor += 1
+        elif prev_line_key is not None:
+            parts.append(" ")
+            cursor += 1
+        prev_line_key = line_key
+
+        start = cursor
+        parts.append(w["text"])
+        cursor += len(w["text"])
+        offsets.append((start, cursor, i))
+    reconstructed = "".join(parts)
+
+    result = scrub(reconstructed, use_ner=use_ner, ner_model=ner_model, ner_labels=ner_labels)
+
+    for entity in result.entities:
+        matching_words = [
+            words[i] for start, end, i in offsets if start < entity.end and end > entity.start
+        ]
+        if not matching_words:
+            continue
+
+        # One rect per OCR line the match touches, rather than a single box
+        # spanning every matched word — keeps a mis-scoped match from ever
+        # covering unrelated content between its first and last line.
+        by_line: dict[tuple, list[dict]] = {}
+        for w in matching_words:
+            by_line.setdefault((w["block_num"], w["line_num"]), []).append(w)
+
+        for line_words in by_line.values():
+            x0 = min(w["left"] for w in line_words) / zoom
+            y0 = min(w["top"] for w in line_words) / zoom
+            x1 = max(w["left"] + w["width"] for w in line_words) / zoom
+            y1 = max(w["top"] + w["height"] for w in line_words) / zoom
+            page.add_redact_annot(fitz.Rect(x0, y0, x1, y1), fill=(0, 0, 0))
 
 
 def _redact_page_images(doc, page, fitz, use_ner, ner_model, ner_labels) -> None:

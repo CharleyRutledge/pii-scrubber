@@ -57,12 +57,17 @@ _PPS_NUMBER = re.compile(r"(?<!\d)\d{7}[A-Za-z](?:[AaWw])?")
 # e.g. "V94 275E", "D01 YT32".
 _EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z]\s[0-9A-Za-z]{4}\b")
 
-# A line containing a common street-type suffix is treated as an address line.
+# A short window of text around a common street-type suffix is treated as an
+# address. Deliberately NOT anchored to line boundaries (^...$) — text that's
+# been reconstructed without real newlines (e.g. OCR word-joining) would
+# otherwise match from the first such keyword to the last, potentially
+# swallowing the entire document. Bounding the context window keeps the
+# blast radius small regardless of whether real line breaks are present.
 _ADDRESS_LINE = re.compile(
-    r"^.*\b(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Lane|Ln\.?|Drive|Dr\.?|Way|"
+    r"[^\n]{0,40}\b(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Lane|Ln\.?|Drive|Dr\.?|Way|"
     r"Close|Court|Ct\.?|Cottages|Terrace|Place|Pl\.?|Square|Sq\.?|Grove|Park|"
-    r"Crescent|Row|Walk|Boulevard|Blvd\.?)\b.*$",
-    re.MULTILINE | re.IGNORECASE,
+    r"Crescent|Row|Walk|Boulevard|Blvd\.?)\b[^\n]{0,40}",
+    re.IGNORECASE,
 )
 
 # Title-prefixed personal name, e.g. "Mr. Jane Doe" or "MR CHARLEY RUTLEDGE".

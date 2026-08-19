@@ -106,3 +106,101 @@ def test_korean_rrn_checksum_hand_verified():
     # than sourced from faker.
     assert "KR_RRN" in _labels("RRN: 230521-1161559")
     assert "KR_RRN" not in _labels("RRN: 230521-1161550")
+
+
+def test_spanish_nif_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("es_ES")
+    Faker.seed(1)
+    valid_nif = fake.nif()
+    assert "ES_NIF" in _labels(f"NIF: {valid_nif}")
+
+
+def test_spanish_nie_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("es_ES")
+    Faker.seed(1)
+    valid_nie = fake.nie()
+    assert "ES_NIE" in _labels(f"NIE: {valid_nie}")
+
+
+def test_italian_codice_fiscale_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("it_IT")
+    Faker.seed(1)
+    valid_cf = fake.ssn()
+    assert "IT_CODICE_FISCALE" in _labels(f"CF: {valid_cf}")
+
+
+def test_norwegian_fodselsnummer_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("no_NO")
+    Faker.seed(1)
+    valid_fnr = fake.ssn()
+    assert "NO_FODSELSNUMMER" in _labels(f"Fodselsnummer: {valid_fnr}")
+
+
+def test_turkish_tckn_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("tr_TR")
+    Faker.seed(1)
+    valid_tckn = fake.ssn()
+    assert "TR_TCKN" in _labels(f"TCKN: {valid_tckn}")
+
+
+def test_romanian_cnp_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("ro_RO")
+    Faker.seed(1)
+    valid_cnp = fake.ssn()
+    assert "RO_CNP" in _labels(f"CNP: {valid_cnp}")
+
+
+def test_hungarian_szemelyi_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("hu_HU")
+    # Seed chosen to land on an 11-digit result - faker's own generator can
+    # occasionally emit a 12-character string (see tools/audit_national_ids.py
+    # for why), which correctly does not match our 11-digit rule.
+    Faker.seed(1)
+    valid_id = fake.ssn()
+    assert len(valid_id) == 11
+    assert "HU_SZEMELYI" in _labels(f"Szemelyi szam: {valid_id}")
+
+
+def test_german_rvnr_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("de_DE")
+    Faker.seed(1)
+    valid_rvnr = fake.rvnr()
+    assert "DE_RVNR" in _labels(f"RVNR: {valid_rvnr}")
+
+
+def test_russian_inn_hand_verified():
+    # faker's ru_RU provider generates 12 random digits with no real
+    # checksum, so this vector is hand-computed against the published
+    # two-stage weighted-mod-11 algorithm instead.
+    assert "RU_INN" in _labels("INN: 123456789047")
+    assert "RU_INN" not in _labels("INN: 123456789040")
+
+
+def test_portuguese_nif_hand_verified():
+    # faker has no Portuguese NIF generator, so this vector is
+    # hand-computed against the published weighted-mod-11 algorithm.
+    assert "PT_NIF" in _labels("NIF: 123456789")
+    assert "PT_NIF" not in _labels("NIF: 123456780")
+
+
+def test_australian_tfn_hand_verified():
+    # faker has no en_AU ssn provider at all, so this vector is
+    # hand-computed against the published ATO weighted-checksum algorithm.
+    assert "AU_TFN" in _labels("TFN: 123456782")
+    assert "AU_TFN" not in _labels("TFN: 123456780")

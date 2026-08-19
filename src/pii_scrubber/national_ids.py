@@ -171,12 +171,215 @@ def _se_personnummer_ok(raw: str) -> bool:
     return _luhn_ok(digits)
 
 
+# ---------- Spanish NIF / NIE ----------
+# NIF: 8 digits + a checksum letter looked up from `number % 23`.
+# NIE (foreign residents): a leading X/Y/Z letter (standing in for 0/1/2 in
+# the checksum calculation) + 7 digits + the same checksum letter.
+_ES_CONTROL_LOOKUP = "TRWAGMYFPDXBNJZSQVHLCKE"
+
+_ES_NIF = re.compile(r"\b\d{8}[A-Za-z]\b")
+_ES_NIE = re.compile(r"\b[XYZxyz]\d{7}[A-Za-z]\b")
+
+
+def _es_nif_ok(raw: str) -> bool:
+    digits, letter = raw[:8], raw[8].upper()
+    return _ES_CONTROL_LOOKUP[int(digits) % 23] == letter
+
+
+def _es_nie_ok(raw: str) -> bool:
+    prefix_value = "XYZ".index(raw[0].upper())
+    digits, letter = raw[1:8], raw[8].upper()
+    return _ES_CONTROL_LOOKUP[int(str(prefix_value) + digits) % 23] == letter
+
+
+# ---------- Italian Codice Fiscale ----------
+# 16 chars: 6 letters (surname/name consonants) + 2 digits (year) + 1 letter
+# (month, from a fixed set) + 2 digits (day, +40 for female) + 4 alphanumeric
+# (municipality code) + 1 checksum letter. Checksum sums a lookup value per
+# character - a different table depending on whether its position (1-based)
+# is odd or even - mod 26, mapped to a letter. Tables are the standard
+# published Codice Fiscale checksum tables.
+_IT_CODICE_FISCALE = re.compile(
+    r"\b[A-Za-z]{6}\d{2}[ABCDEHLMPRSTabcdehlmprst]\d{2}[A-Za-z]\d{3}[A-Za-z]\b"
+)
+
+_IT_ALPHANUMERICS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+# Indices 0-9 = digits 0-9, 10-35 = letters A-Z, matching _IT_ALPHANUMERICS.
+_IT_ODD_TABLE = (
+    1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 1, 0, 5, 7, 9, 13, 15, 17, 19, 21,
+    2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23,
+)
+_IT_EVEN_TABLE = (
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+)
+
+
+def _it_codice_fiscale_ok(raw: str) -> bool:
+    value = raw.upper()
+    total = 0
+    for index, char in enumerate(value[:15]):
+        char_index = _IT_ALPHANUMERICS.index(char)
+        table = _IT_ODD_TABLE if index % 2 == 0 else _IT_EVEN_TABLE
+        total += table[char_index]
+    expected = chr(65 + total % 26)
+    return value[15] == expected
+
+
+# ---------- Norwegian Fodselsnummer ----------
+# 11 digits: DDMMYY + 3-digit individual number + 2 check digits, validated
+# with a two-stage Modulus 11 checksum.
+_NO_FODSELSNUMMER = re.compile(r"(?<!\d)\d{11}(?!\d)")
+
+_NO_SCALE1 = (3, 7, 6, 1, 8, 9, 4, 5, 2)
+_NO_SCALE2 = (5, 4, 3, 2, 7, 6, 5, 4, 3, 2)
+
+
+def _no_checksum(digits: list, scale: tuple) -> int:
+    value = 11 - (sum(d * s for d, s in zip(digits, scale)) % 11)
+    return 0 if value == 11 else value
+
+
+def _no_fodselsnummer_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    k1 = _no_checksum(digits[:9], _NO_SCALE1)
+    k2 = _no_checksum(digits[:9] + [k1], _NO_SCALE2)
+    return k1 != 10 and k2 != 10 and digits[9] == k1 and digits[10] == k2
+
+
+# ---------- Turkish TC Kimlik No ----------
+# 11 digits. 10th digit = ((sum of odd-position digits * 7) - sum of
+# even-position digits) mod 10; 11th digit = (sum of first 10 digits) mod 10.
+_TR_TCKN = re.compile(r"(?<!\d)[1-9]\d{10}(?!\d)")
+
+
+def _tr_tckn_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    odd_sum = sum(digits[i] for i in (0, 2, 4, 6, 8))
+    even_sum = sum(digits[i] for i in (1, 3, 5, 7))
+    tenth = ((odd_sum * 7) - even_sum) % 10
+    eleventh = sum(digits[:10]) % 10
+    return digits[9] == tenth and digits[10] == eleventh
+
+
+# ---------- Romanian CNP ----------
+# 13 digits, weighted checksum (weights 2,7,9,1,4,6,3,5,8,2,7,9), remainder
+# 10 maps to check digit 1.
+_RO_CNP = re.compile(r"(?<!\d)[1-8]\d{12}(?!\d)")
+
+_RO_WEIGHTS = (2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9)
+
+
+def _ro_cnp_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    total = sum(d * w for d, w in zip(digits[:12], _RO_WEIGHTS)) % 11
+    check = 1 if total == 10 else total
+    return digits[12] == check
+
+
+# ---------- Hungarian szemelyi szam ----------
+# 11 digits: gender(1) + birth YYMMDD(6) + serial(3) + check digit(1). The
+# check-digit weighting direction flips based on the (2-digit) birth year
+# encoded in the number: ascending weights 1..10 when 17 < year < 97,
+# descending weights 10..1 otherwise. This matches the reference
+# implementation's actual code, which is the opposite of what its own
+# docstring claims ("born <=1999 -> ascending") - the docstring appears to
+# describe an intended/documented scheme that doesn't match what the code
+# actually does, so the real generator's behavior (verified against
+# thousands of generated examples) was used as the source of truth instead.
+_HU_SZEMELYI = re.compile(r"(?<!\d)[1-8]\d{10}(?!\d)")
+
+
+def _hu_szemelyi_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    year = digits[1] * 10 + digits[2]
+    if 17 < year < 97:
+        weighted = sum((i + 1) * d for i, d in enumerate(digits[:10]))
+    else:
+        weighted = sum((10 - i) * d for i, d in enumerate(digits[:10]))
+    return digits[10] == weighted % 11
+
+
+# ---------- Russian INN (individual taxpayer number) ----------
+# 12 digits, two sequential weighted-mod-11 check digits.
+_RU_INN = re.compile(r"(?<!\d)\d{12}(?!\d)")
+
+_RU_WEIGHTS_11 = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
+_RU_WEIGHTS_12 = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
+
+
+def _ru_inn_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    check11 = sum(d * w for d, w in zip(digits[:10], _RU_WEIGHTS_11)) % 11 % 10
+    check12 = sum(d * w for d, w in zip(digits[:11], _RU_WEIGHTS_12)) % 11 % 10
+    return digits[10] == check11 and digits[11] == check12
+
+
+# ---------- Portuguese NIF ----------
+# 9 digits, weighted checksum (weights 9,8,7,6,5,4,3,2), remainder <2 maps
+# to check digit 0.
+_PT_NIF = re.compile(r"(?<!\d)[1-9]\d{8}(?!\d)")
+
+_PT_WEIGHTS = (9, 8, 7, 6, 5, 4, 3, 2)
+
+
+def _pt_nif_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    total = sum(d * w for d, w in zip(digits[:8], _PT_WEIGHTS))
+    remainder = total % 11
+    check = 0 if remainder < 2 else 11 - remainder
+    return digits[8] == check
+
+
+# ---------- Australian Tax File Number ----------
+# 9 digits, weighted checksum (weights 1,4,3,7,5,8,6,9,10) divisible by 11.
+_AU_TFN = re.compile(r"(?<!\d)\d{9}(?!\d)")
+
+_AU_WEIGHTS = (1, 4, 3, 7, 5, 8, 6, 9, 10)
+
+
+def _au_tfn_ok(raw: str) -> bool:
+    digits = [int(c) for c in raw]
+    total = sum(d * w for d, w in zip(digits, _AU_WEIGHTS))
+    return total % 11 == 0
+
+
+# ---------- German Rentenversicherungsnummer (pension insurance number) ----------
+# 12 chars: 2 digits (area) + 6 digits (DDMMYY birthdate) + 1 letter (first
+# letter of birth surname) + 2 digits + 1 check digit. Checksum: the letter
+# is converted to its 2-digit alphabet position (A=01..Z=26), expanding the
+# value to 12 digits, each multiplied by a fixed factor, digit-summed, and
+# totalled mod 10.
+_DE_RVNR = re.compile(r"\b\d{8}[A-Za-z]\d{3}\b")
+
+_DE_RVNR_FACTORS = (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1)
+
+
+def _de_rvnr_ok(raw: str) -> bool:
+    value = raw.upper()
+    check_digit = int(value[11])
+    letter_pos = ord(value[8]) - ord("A") + 1
+    expanded = value[:8] + f"{letter_pos:02d}" + value[9:11]
+    if not expanded.isdigit() or len(expanded) != 12:
+        return False
+
+    total = 0
+    for digit_char, factor in zip(expanded, _DE_RVNR_FACTORS):
+        product = int(digit_char) * factor
+        total += sum(int(d) for d in str(product))
+    return total % 10 == check_digit
+
+
 _CHECKSUM_RULES = [
     ("CA_SIN", _CA_SIN, lambda m: _ca_sin_ok(m.group())),
     ("SE_PERSONNUMMER", _SE_PERSONNUMMER, lambda m: _se_personnummer_ok(m.group())),
     ("KR_RRN", _KR_RRN, lambda m: _kr_rrn_ok(m.group())),
     ("BR_CPF", _BR_CPF, lambda m: _br_cpf_ok(m.group())),
     ("FR_INSEE", _FR_INSEE, _fr_insee_ok),
+    ("ES_NIF", _ES_NIF, lambda m: _es_nif_ok(m.group())),
+    ("ES_NIE", _ES_NIE, lambda m: _es_nie_ok(m.group())),
+    ("IT_CODICE_FISCALE", _IT_CODICE_FISCALE, lambda m: _it_codice_fiscale_ok(m.group())),
+    ("DE_RVNR", _DE_RVNR, lambda m: _de_rvnr_ok(m.group())),
 ]
 
 # Plain-digit-run formats (no distinctive punctuation) are checked last and
@@ -186,6 +389,13 @@ _CHECKSUM_RULES = [
 _DIGIT_RUN_RULES = [
     ("NL_BSN", _NL_BSN, lambda digits: _nl_bsn_ok(digits)),
     ("PL_PESEL", _PL_PESEL, lambda digits: _pl_pesel_ok(digits)),
+    ("NO_FODSELSNUMMER", _NO_FODSELSNUMMER, lambda digits: _no_fodselsnummer_ok(digits)),
+    ("TR_TCKN", _TR_TCKN, lambda digits: _tr_tckn_ok(digits)),
+    ("RO_CNP", _RO_CNP, lambda digits: _ro_cnp_ok(digits)),
+    ("HU_SZEMELYI", _HU_SZEMELYI, lambda digits: _hu_szemelyi_ok(digits)),
+    ("RU_INN", _RU_INN, lambda digits: _ru_inn_ok(digits)),
+    ("PT_NIF", _PT_NIF, lambda digits: _pt_nif_ok(digits)),
+    ("AU_TFN", _AU_TFN, lambda digits: _au_tfn_ok(digits)),
 ]
 
 

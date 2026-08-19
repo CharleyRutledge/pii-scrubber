@@ -125,17 +125,47 @@ scrub(text, use_ner=False)
 | Label | Source |
 |---|---|
 | EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
-| National IDs: `PPS_NUMBER` (IE), `UK_NINO` (GB), `FR_INSEE` (FR), `NL_BSN` (NL), `PL_PESEL` (PL), `BR_CPF` (BR), `CN_RESIDENT_ID` (CN), `KR_RRN` (KR), `CA_SIN` (CA), `SE_PERSONNUMMER` (SE); `EIRCODE` (IE postal code) | regex, checksum-validated where a real algorithm exists (Luhn, elfproef, ISO 7064, etc.) |
+| National IDs (20 countries, see table below) | regex, checksum-validated where a real algorithm exists |
 | PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
 | LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
 
 `FILE_PATH` catches `file://` URIs, which often leak a local OS username via
-the path. National ID rules were validated against hundreds of
-locale-appropriate synthetic documents generated with
-[Faker](https://faker.readthedocs.io/) - see `tools/audit_national_ids.py`.
-Coverage is still partial: Germany, Spain, Italy, Norway, Russia, Turkey,
-and others don't have a dedicated rule yet - contributions welcome (see
-[CONTRIBUTING.md](CONTRIBUTING.md)).
+the path.
+
+#### National ID coverage
+
+| Country | Label | Checksum algorithm |
+|---|---|---|
+| Ireland | `PPS_NUMBER` | letter checksum |
+| Ireland (postal code) | `EIRCODE` | format only |
+| United Kingdom | `UK_NINO` | format only (letter/prefix constraints) |
+| United States | `SSN` | format only |
+| France | `FR_INSEE` | mod 97 |
+| Germany | `DE_RVNR` | weighted digit-sum |
+| Spain | `ES_NIF` / `ES_NIE` | mod 23 letter lookup |
+| Italy | `IT_CODICE_FISCALE` | position-weighted mod 26 |
+| Netherlands | `NL_BSN` | elfproef (mod 11) |
+| Poland | `PL_PESEL` | weighted mod 10 |
+| Sweden | `SE_PERSONNUMMER` | Luhn |
+| Norway | `NO_FODSELSNUMMER` | two-stage mod 11 |
+| Portugal | `PT_NIF` | weighted mod 11 |
+| Russia | `RU_INN` | two-stage weighted mod 11 |
+| Turkey | `TR_TCKN` | weighted mod 10 |
+| Romania | `RO_CNP` | weighted mod 11 |
+| Hungary | `HU_SZEMELYI` | weighted mod 11 (direction depends on birth year) |
+| Brazil | `BR_CPF` | two-stage weighted mod 11 |
+| Canada | `CA_SIN` | Luhn |
+| China | `CN_RESIDENT_ID` | ISO 7064 MOD 11-2 |
+| South Korea | `KR_RRN` | weighted mod 11 |
+| Australia | `AU_TFN` | weighted mod 11 |
+
+All 20 were validated against hundreds of locale-appropriate synthetic
+documents generated with [Faker](https://faker.readthedocs.io/) - see
+`tools/audit_national_ids.py`. Where Faker itself can't generate a real
+checksum-valid example for a country (it has gaps too - see the script's
+output for specifics), the rule is instead verified with a hand-computed
+test vector in `tests/test_national_ids.py`. More countries are welcome -
+see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Known limitations
 

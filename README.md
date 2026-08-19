@@ -167,6 +167,16 @@ output for specifics), the rule is instead verified with a hand-computed
 test vector in `tests/test_national_ids.py`. More countries are welcome -
 see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Several of these are also commonly displayed with punctuation/spacing
+rather than as a bare digit run, confirmed against authoritative sources
+and handled explicitly: French INSEE (`1 85 03 75 116 001 27`), Swedish
+personnummer's full-century form (`19960804-5820`), Dutch BSN
+(`1234.56.789`), Spanish NIF/NIE (`12345678-Z`), and Australian TFN
+(`123 456 782`) - in addition to IBAN and UK NINO, mentioned above. Not
+every remaining rule has been checked for a real alternate display format
+this thoroughly yet (e.g. Norwegian, Hungarian) - if you know of one,
+please open an issue or PR.
+
 ## Known limitations
 
 - **NER is English-only and unreliable on other languages.** The bundled

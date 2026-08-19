@@ -70,10 +70,15 @@ def _fr_insee_ok(match: re.Match) -> bool:
 # ---------- Dutch BSN (Burgerservicenummer) ----------
 # 8-9 digits, "elfproef" checksum: weighted sum with weights descending from
 # 9 (or 8) down to 2, then -1 for the last digit, must be divisible by 11.
-_NL_BSN = re.compile(r"(?<!\d)\d{8,9}(?!\d)")
+# Official documents conventionally group the 9-digit form with dots as
+# "NNNN.NN.NNN" (confirmed via government.nl/business.gov.nl), which the
+# original digit-only pattern missed - the same class of bug as the
+# IBAN/UK NINO/FR INSEE/SE personnummer spacing fixes.
+_NL_BSN = re.compile(r"(?<!\d)(?:\d{4}\.\d{2}\.\d{3}|\d{8,9})(?!\d)")
 
 
-def _nl_bsn_ok(digits: str) -> bool:
+def _nl_bsn_ok(raw: str) -> bool:
+    digits = raw.replace(".", "")
     if len(digits) == 8:
         digits = "0" + digits
     weights = [9, 8, 7, 6, 5, 4, 3, 2, -1]
@@ -185,18 +190,23 @@ def _se_personnummer_ok(raw: str) -> bool:
 # NIF: 8 digits + a checksum letter looked up from `number % 23`.
 # NIE (foreign residents): a leading X/Y/Z letter (standing in for 0/1/2 in
 # the checksum calculation) + 7 digits + the same checksum letter.
+# Commonly displayed with a dash before the check letter ("12345678-Z"),
+# which the original pattern missed - same class of bug as the other
+# spacing/format fixes above.
 _ES_CONTROL_LOOKUP = "TRWAGMYFPDXBNJZSQVHLCKE"
 
-_ES_NIF = re.compile(r"\b\d{8}[A-Za-z]\b")
-_ES_NIE = re.compile(r"\b[XYZxyz]\d{7}[A-Za-z]\b")
+_ES_NIF = re.compile(r"\b\d{8}-?[A-Za-z]\b")
+_ES_NIE = re.compile(r"\b[XYZxyz]-?\d{7}-?[A-Za-z]\b")
 
 
 def _es_nif_ok(raw: str) -> bool:
+    raw = raw.replace("-", "")
     digits, letter = raw[:8], raw[8].upper()
     return _ES_CONTROL_LOOKUP[int(digits) % 23] == letter
 
 
 def _es_nie_ok(raw: str) -> bool:
+    raw = raw.replace("-", "")
     prefix_value = "XYZ".index(raw[0].upper())
     digits, letter = raw[1:8], raw[8].upper()
     return _ES_CONTROL_LOOKUP[int(str(prefix_value) + digits) % 23] == letter
@@ -343,13 +353,15 @@ def _pt_nif_ok(raw: str) -> bool:
 
 # ---------- Australian Tax File Number ----------
 # 9 digits, weighted checksum (weights 1,4,3,7,5,8,6,9,10) divisible by 11.
-_AU_TFN = re.compile(r"(?<!\d)\d{9}(?!\d)")
+# The ATO's own correspondence displays this grouped in 3s ("123 456 782"),
+# not just the compact form - same class of bug as the other spacing fixes.
+_AU_TFN = re.compile(r"(?<!\d)(?:\d{9}|\d{3} \d{3} \d{3})(?!\d)")
 
 _AU_WEIGHTS = (1, 4, 3, 7, 5, 8, 6, 9, 10)
 
 
 def _au_tfn_ok(raw: str) -> bool:
-    digits = [int(c) for c in raw]
+    digits = [int(c) for c in raw if c.isdigit()]
     total = sum(d * w for d, w in zip(digits, _AU_WEIGHTS))
     return total % 11 == 0
 

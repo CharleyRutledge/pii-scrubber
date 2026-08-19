@@ -60,6 +60,19 @@ def test_dutch_bsn_valid_and_invalid_checksum():
     assert "NL_BSN" in _labels(f"BSN: {valid_bsn}")
 
 
+def test_dutch_bsn_conventional_dotted_grouping():
+    # Regression: official documents (government.nl, business.gov.nl)
+    # display the 9-digit form grouped as "NNNN.NN.NNN" - same class of
+    # bug as the other spacing/format fixes.
+    from faker import Faker
+
+    fake = Faker("nl_NL")
+    Faker.seed(1)
+    valid_bsn = fake.ssn()
+    dotted = f"{valid_bsn[:4]}.{valid_bsn[4:6]}.{valid_bsn[6:]}"
+    assert "NL_BSN" in _labels(f"BSN: {dotted}")
+
+
 def test_polish_pesel_valid_checksum():
     from faker import Faker
 
@@ -132,6 +145,18 @@ def test_spanish_nif_valid_checksum():
     Faker.seed(1)
     valid_nif = fake.nif()
     assert "ES_NIF" in _labels(f"NIF: {valid_nif}")
+
+
+def test_spanish_nif_conventional_dash():
+    # Regression: commonly displayed with a dash before the check letter
+    # ("12345678-Z") - same class of bug as the other spacing/format fixes.
+    from faker import Faker
+
+    fake = Faker("es_ES")
+    Faker.seed(1)
+    valid_nif = fake.nif()
+    dashed = f"{valid_nif[:8]}-{valid_nif[8]}"
+    assert "ES_NIF" in _labels(f"NIF: {dashed}")
 
 
 def test_spanish_nie_valid_checksum():
@@ -221,3 +246,9 @@ def test_australian_tfn_hand_verified():
     # hand-computed against the published ATO weighted-checksum algorithm.
     assert "AU_TFN" in _labels("TFN: 123456782")
     assert "AU_TFN" not in _labels("TFN: 123456780")
+
+
+def test_australian_tfn_conventional_grouping():
+    # Regression: the ATO's own correspondence displays this grouped in 3s
+    # ("123 456 782") - same class of bug as the other spacing fixes.
+    assert "AU_TFN" in _labels("TFN: 123 456 782")

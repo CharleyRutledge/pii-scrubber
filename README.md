@@ -127,6 +127,7 @@ scrub(text, use_ner=False)
 | EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
 | National IDs (39 countries, see table below) | regex, checksum-validated where a real algorithm exists |
 | `PASSPORT_MRZ` (any issuing country) | regex, ICAO 9303 checksum-validated |
+| Health insurance: `DE_KVNR` (Germany), `UK_NHS_NUMBER`, `CA_ON_HEALTH` (Ontario) | regex, checksum-validated |
 | PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
 | LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
 
@@ -138,6 +139,18 @@ mostly have no public checksum of their own, so a bare "letters + digits"
 pattern would be far too collision-prone; the MRZ is identical in structure
 across every issuing country and carries four real check digits. Verified
 against ICAO's own published worked example - see `tests/test_mrz.py`.
+
+**Driver's licences are deliberately not implemented.** Researched the UK
+format specifically (the most well-documented one): it deterministically
+encodes surname, birth date, and initials into 11 of its 16 characters,
+but its own documentation describes the final characters as
+"computer-generated"/random - there is no real checksum. US licences vary
+by state with no federal standard and, as far as could be verified, no
+checksum either. Implementing a format-only pattern for either would
+reintroduce exactly the collision risk that `_US_PASSPORT` (removed
+earlier - see git history) had: matching against ordinary alphanumeric
+codes throughout a document. If you know of a driver's licence format
+with a real public checksum, contributions are welcome.
 
 #### National ID coverage
 

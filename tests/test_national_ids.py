@@ -376,3 +376,39 @@ def test_czech_and_slovak_rodne_cislo_valid_checksum():
         assert "CZ_SK_RODNE_CISLO" in _labels(f"RC: {valid_id}"), (
             f"CZ_SK_RODNE_CISLO not matched for {locale} value {valid_id!r}"
         )
+
+
+def test_german_kvnr_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("de_DE")
+    Faker.seed(1)
+    valid_kvnr = fake.kvnr()
+    assert "DE_KVNR" in _labels(f"KVNR: {valid_kvnr}")
+
+
+def test_uk_nhs_number_official_worked_example():
+    # From the NHS Data Dictionary's own published worked example:
+    # first 9 digits 401 023 213 -> check digit 7.
+    assert "UK_NHS_NUMBER" in _labels("NHS No: 4010232137")
+
+
+def test_uk_nhs_number_rejects_bad_checksum():
+    assert "UK_NHS_NUMBER" not in _labels("NHS No: 4010232138")
+
+
+def test_uk_nhs_number_rejects_unissuable_check_value():
+    # Per the NHS Data Dictionary: if the weighted sum mod 11 == 1 (which
+    # maps to a check value of 10), the number was never validly issued
+    # and must be rejected outright regardless of the 10th digit.
+    # Verified: digits 775159179 -> weighted sum mod 11 == 1.
+    assert "UK_NHS_NUMBER" not in _labels("NHS No: 7751591790")
+    assert "UK_NHS_NUMBER" not in _labels("NHS No: 7751591791")
+
+
+def test_ontario_health_card_valid_luhn():
+    assert "CA_ON_HEALTH" in _labels("OHIP: 1234567897")
+
+
+def test_ontario_health_card_conventional_grouping():
+    assert "CA_ON_HEALTH" in _labels("OHIP: 1234 567 897")

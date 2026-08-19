@@ -45,10 +45,14 @@ _UK_NINO = re.compile(
 # ---------- French INSEE / NIR (numero de securite sociale) ----------
 # 15 digits: sex(1) + year(2) + month(2) + dept(2-3) + commune(3) + order(3)
 # + key(2). Key = 97 - (first 13 digits mod 97), with Corsica letters 2A/2B
-# mapped to 19/18 for the checksum calculation.
+# mapped to 19/18 for the checksum calculation. Real documents (payslips,
+# tax notices) conventionally group this with spaces, e.g.
+# "1 85 03 75 116 001 27" - found missing (same class of bug as the earlier
+# IBAN/UK NINO spacing fixes) by deliberately re-testing that lesson against
+# every other space-prone rule after being asked what else was missed.
 _FR_INSEE = re.compile(
-    r"\b([12])(\d{2})(\d{2}|20|30|40|50|60|70|80|90|99)"
-    r"(\d{2}|2[AaBb])(\d{3})(\d{3})(\d{2})\b"
+    r"\b([12])[ ]?(\d{2})[ ]?(\d{2}|20|30|40|50|60|70|80|90|99)"
+    r"[ ]?(\d{2}|2[AaBb])[ ]?(\d{3})[ ]?(\d{3})[ ]?(\d{2})\b"
 )
 
 
@@ -161,13 +165,19 @@ def _ca_sin_ok(raw: str) -> bool:
 
 
 # ---------- Swedish Personnummer ----------
-# YYMMDD-XXXX (or +XXXX for centenarians), Luhn-validated on the 10-digit
-# short form (date + serial + check digit, century digits excluded).
-_SE_PERSONNUMMER = re.compile(r"(?<!\d)\d{6}[-+]\d{4}(?!\d)")
+# YYMMDD-XXXX (or +XXXX for centenarians) is the short form, but official
+# documents commonly use the full-century 12-digit form YYYYMMDD-XXXX too -
+# missing that was the same class of spacing/format bug as IBAN/UK NINO/
+# French INSEE above, just with an optional prefix instead of internal
+# spaces. Luhn-validated on the 10-digit short form; the optional 2-digit
+# century prefix is excluded from the checksum per the official spec.
+_SE_PERSONNUMMER = re.compile(r"(?<!\d)(?:\d{2})?\d{6}[-+]\d{4}(?!\d)")
 
 
 def _se_personnummer_ok(raw: str) -> bool:
     digits = re.sub(r"[-+]", "", raw)
+    if len(digits) == 12:
+        digits = digits[2:]
     return _luhn_ok(digits)
 
 

@@ -41,7 +41,13 @@ _IPV4 = re.compile(
 
 _IPV6 = re.compile(r"\b(?:[A-Fa-f0-9]{1,4}:){2,7}[A-Fa-f0-9]{0,4}\b")
 
-_US_PASSPORT = re.compile(r"(?<![A-Za-z0-9])[A-Z]{1,2}\d{6,9}(?![A-Za-z0-9])")
+# Passport numbers are NOT implemented: a generic "1-2 letters + 6-9 digits"
+# shape (the old draft attempted here) is far too collision-prone against
+# invoice numbers, SKUs, and order references to ship without much tighter
+# per-country constraints or a checksum - modern US passports, for
+# instance, are just 9 plain digits with no distinguishing shape at all.
+# Flagged as a real gap rather than left as silently-unwired dead code -
+# see README's Known limitations and CONTRIBUTING.md.
 
 # IBANs are conventionally displayed grouped in 4s with spaces (ISO 13616
 # presentation format, e.g. "GB29 NWBK 6016 1331 9268 19"), not as one

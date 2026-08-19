@@ -38,6 +38,15 @@ def test_french_insee_rejects_bad_checksum():
     assert "FR_INSEE" not in _labels("NIR: 185037511600128")
 
 
+def test_french_insee_conventional_spacing():
+    # Regression: real documents (payslips, tax notices) conventionally
+    # group this with spaces ("1 85 03 75 116 001 27"), the same class of
+    # bug as the earlier IBAN/UK NINO spacing fixes - found by deliberately
+    # re-checking every other space-prone national ID rule after being
+    # asked what else had been missed.
+    assert "FR_INSEE" in _labels("NIR: 1 85 03 75 116 001 27")
+
+
 def test_dutch_bsn_valid_and_invalid_checksum():
     matches = find_national_id_matches("BSN: 111222333")
     # Whether 111222333 itself is elfproef-valid isn't the point - what
@@ -96,6 +105,14 @@ def test_swedish_personnummer_luhn_validated():
     Faker.seed(1)
     valid_pn = fake.ssn()
     assert "SE_PERSONNUMMER" in _labels(f"Personnummer: {valid_pn}")
+
+
+def test_swedish_personnummer_full_century_form():
+    # Regression: official documents commonly use the full-century 12-digit
+    # form (YYYYMMDD-XXXX) as well as the 10-digit short form - the century
+    # prefix is excluded from the Luhn checksum per spec. Derived from the
+    # same faker-generated short-form vector above with "19" prepended.
+    assert "SE_PERSONNUMMER" in _labels("Personnummer: 19960804-5820")
 
 
 def test_korean_rrn_checksum_hand_verified():

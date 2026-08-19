@@ -9,6 +9,7 @@ import re
 from typing import Iterator
 
 from .entities import EntityMatch
+from .mrz import find_passport_matches
 from .national_ids import find_national_id_matches
 
 
@@ -158,5 +159,6 @@ def find_regex_matches(text: str) -> list[EntityMatch]:
         )
 
     matches.extend(find_national_id_matches(text))
+    matches.extend(find_passport_matches(text))
 
     return matches

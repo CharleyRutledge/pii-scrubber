@@ -346,3 +346,33 @@ def test_swiss_ahv_distinctive_756_prefix_low_collision_risk():
     # GS1 prefix) should never be mistaken for a Swiss AHV number, regardless
     # of whether it happens to pass the checksum.
     assert "CH_AHV" not in _labels("Ref: 1234567890123")
+
+
+def test_indian_aadhaar_valid_checksum():
+    from faker import Faker
+
+    fake = Faker("en_IN")
+    Faker.seed(1)
+    valid_aadhaar = fake.aadhaar_id()
+    assert "IN_AADHAAR" in _labels(f"Aadhaar: {valid_aadhaar}")
+
+
+def test_chilean_rut_valid_checksum_with_dotted_grouping():
+    from faker import Faker
+
+    fake = Faker("es_CL")
+    Faker.seed(1)
+    valid_rut = fake.person_rut()
+    assert "CL_RUT" in _labels(f"RUT: {valid_rut}")
+
+
+def test_czech_and_slovak_rodne_cislo_valid_checksum():
+    from faker import Faker
+
+    for locale in ("cs_CZ", "sk_SK"):
+        fake = Faker(locale)
+        Faker.seed(1)
+        valid_id = fake.birth_number()
+        assert "CZ_SK_RODNE_CISLO" in _labels(f"RC: {valid_id}"), (
+            f"CZ_SK_RODNE_CISLO not matched for {locale} value {valid_id!r}"
+        )

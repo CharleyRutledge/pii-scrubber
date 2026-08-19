@@ -666,6 +666,51 @@ def _tw_id_ok(raw: str) -> bool:
     return total % 10 == 0
 
 
+# ---------- Indian Aadhaar ----------
+# 12 digits, Luhn-validated (identical construction to CREDIT_CARD's check
+# in rules.py: an 11-digit body plus a Luhn check digit appended).
+_IN_AADHAAR = re.compile(r"(?<!\d)\d{12}(?!\d)")
+
+
+def _in_aadhaar_ok(raw: str) -> bool:
+    return _luhn_ok(raw)
+
+
+# ---------- Chilean RUT (Rol Unico Tributario) ----------
+# Up to 8 digits + a check character (0-9 or K), conventionally grouped
+# with periods as thousands separators ("4.508.525-2"). Checksum: digits
+# processed right-to-left, multiplied by cycling weights 2..7, summed;
+# check = -sum mod 11, mapped to "0" if 11 or "K" if 10.
+_CL_RUT = re.compile(r"(?<!\d)\d{1,3}(?:\.?\d{3}){1,2}-[0-9Kk](?!\d)")
+
+
+def _cl_rut_ok(raw: str) -> bool:
+    body, check_char = raw.rsplit("-", 1)
+    number = int(body.replace(".", ""))
+    total = 0
+    weight_cycle = (2, 3, 4, 5, 6, 7)
+    i = 0
+    while number != 0:
+        total += weight_cycle[i % 6] * (number % 10)
+        number //= 10
+        i += 1
+    remainder = -total % 11
+    expected = "0" if remainder == 11 else "K" if remainder == 10 else str(remainder)
+    return check_char.upper() == expected
+
+
+# ---------- Czech/Slovak Rodne cislo (birth number) ----------
+# "YYMMDD/SSSS" (or a 3-digit serial for pre-1954 births) - identical
+# format and checksum in both countries. The digits (date + serial,
+# without the slash) must be evenly divisible by 11.
+_CZ_SK_RODNE_CISLO = re.compile(r"(?<!\d)\d{6}/\d{3,4}(?!\d)")
+
+
+def _cz_sk_rodne_cislo_ok(raw: str) -> bool:
+    digits = raw.replace("/", "")
+    return int(digits) % 11 == 0
+
+
 _CHECKSUM_RULES = [
     ("CA_SIN", _CA_SIN, lambda m: _ca_sin_ok(m.group())),
     ("SE_PERSONNUMMER", _SE_PERSONNUMMER, lambda m: _se_personnummer_ok(m.group())),
@@ -680,6 +725,8 @@ _CHECKSUM_RULES = [
     ("CH_AHV", _CH_AHV, lambda m: _ch_ahv_ok(m.group())),
     ("LV_PERSONAS_KODS", _LV_PERSONAS_KODS, lambda m: _lv_personas_kods_ok(m.group())),
     ("TW_ID", _TW_ID, lambda m: _tw_id_ok(m.group())),
+    ("CL_RUT", _CL_RUT, lambda m: _cl_rut_ok(m.group())),
+    ("CZ_SK_RODNE_CISLO", _CZ_SK_RODNE_CISLO, lambda m: _cz_sk_rodne_cislo_ok(m.group())),
 ]
 
 # Plain-digit-run formats (no distinctive punctuation) are checked last and
@@ -711,6 +758,7 @@ _DIGIT_RUN_RULES = [
     ("BA_JMB", _MK_EMBG, lambda digits: _ba_jmb_ok(digits)),
     ("BE_RRN", _BE_RRN, lambda digits: _be_rrn_ok(digits)),
     ("UA_RNOKPP", _UA_RNOKPP, lambda digits: _ua_rnokpp_ok(digits)),
+    ("IN_AADHAAR", _IN_AADHAAR, lambda digits: _in_aadhaar_ok(digits)),
 ]
 
 

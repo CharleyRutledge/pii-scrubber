@@ -54,6 +54,10 @@ LOCALES = {
     "sr_BA": ("Bosnia and Herzegovina", "BA_JMB", "ssn"),
     "uk_UA": ("Ukraine", "UA_RNOKPP", "ssn"),
     "zh_TW": ("Taiwan", "TW_ID", "ssn"),
+    "en_IN": ("India", "IN_AADHAAR", "aadhaar_id"),
+    "es_CL": ("Chile", "CL_RUT", "person_rut"),
+    "cs_CZ": ("Czech Republic", "CZ_SK_RODNE_CISLO", "birth_number"),
+    "sk_SK": ("Slovakia", "CZ_SK_RODNE_CISLO", "birth_number"),
 }
 
 DOCS_PER_LOCALE = 10

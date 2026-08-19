@@ -125,7 +125,7 @@ scrub(text, use_ner=False)
 | Label | Source |
 |---|---|
 | EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
-| National IDs (35 countries, see table below) | regex, checksum-validated where a real algorithm exists |
+| National IDs (39 countries, see table below) | regex, checksum-validated where a real algorithm exists |
 | `PASSPORT_MRZ` (any issuing country) | regex, ICAO 9303 checksum-validated |
 | PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
 | LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
@@ -180,6 +180,9 @@ against ICAO's own published worked example - see `tests/test_mrz.py`.
 | Bosnia and Herzegovina | `BA_JMB` | weighted mod 11 (see note below) |
 | Ukraine | `UA_RNOKPP` | weighted mod 11 mod 10 |
 | Taiwan | `TW_ID` | letter-weighted positional sum |
+| India | `IN_AADHAAR` | Luhn |
+| Chile | `CL_RUT` | mod 11, cycling weights |
+| Czech Republic / Slovakia | `CZ_SK_RODNE_CISLO` | divisible by 11 |
 
 North Macedonia and Bosnia's formats both descend from the shared
 former-Yugoslav JMBG numbering system and use the same weights, but their
@@ -191,7 +194,7 @@ identical, which silently rejected about 1 in 11 otherwise-valid North
 Macedonian numbers (see `tests/test_national_ids.py` for the vector that
 catches a regression).
 
-All 35 were validated against hundreds of locale-appropriate synthetic
+All 39 were validated against hundreds of locale-appropriate synthetic
 documents generated with [Faker](https://faker.readthedocs.io/) - see
 `tools/audit_national_ids.py`. Where Faker itself can't generate a real
 checksum-valid example for a country (it has gaps too - see the script's

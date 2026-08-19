@@ -21,7 +21,10 @@ your documents. You can read exactly what it does: pattern rules live in
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a step-by-step
 CLI walkthrough with a recorded terminal session - generated straight from a
 real, passing run of the CLI (`tools/record_demo.py`), so the commands and
-output shown are genuine, not hand-written.
+output shown are genuine, not hand-written. See
+[CHANGELOG.md](CHANGELOG.md) for a full status report of what's covered
+(document formats, languages tested, all 39 national ID formats, passport/
+health-insurance detection) and what's explicitly not implemented yet.
 
 ## Install
 

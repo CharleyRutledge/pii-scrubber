@@ -125,12 +125,19 @@ scrub(text, use_ner=False)
 | Label | Source |
 |---|---|
 | EMAIL, PHONE, SSN, CREDIT_CARD, IP_ADDRESS, MAC_ADDRESS, IBAN, ADDRESS, URL, FILE_PATH, SOCIAL_PROFILE | regex |
-| National IDs (20 countries, see table below) | regex, checksum-validated where a real algorithm exists |
+| National IDs (35 countries, see table below) | regex, checksum-validated where a real algorithm exists |
+| `PASSPORT_MRZ` (any issuing country) | regex, ICAO 9303 checksum-validated |
 | PERSON (also caught via title-prefixed regex, e.g. "MR CHARLEY RUTLEDGE") | regex + spaCy NER |
 | LOCATION, ORGANIZATION, AFFILIATION | spaCy NER |
 
 `FILE_PATH` catches `file://` URIs, which often leak a local OS username via
-the path.
+the path. `PASSPORT_MRZ` detects the two-line Machine Readable Zone printed
+on every passport worldwide (ICAO 9303 standard) rather than a per-country
+passport-number pattern - passport formats vary hugely by country and
+mostly have no public checksum of their own, so a bare "letters + digits"
+pattern would be far too collision-prone; the MRZ is identical in structure
+across every issuing country and carries four real check digits. Verified
+against ICAO's own published worked example - see `tests/test_mrz.py`.
 
 #### National ID coverage
 
@@ -158,8 +165,33 @@ the path.
 | China | `CN_RESIDENT_ID` | ISO 7064 MOD 11-2 |
 | South Korea | `KR_RRN` | weighted mod 11 |
 | Australia | `AU_TFN` | weighted mod 11 |
+| Algeria | `DZ_NIN` | modified Luhn |
+| Austria | `AT_SVNR` | weighted mod 11 |
+| Greece | `EL_AMKA` | Luhn |
+| Mexico | `MX_IMSS` | digital-root weighted sum |
+| Estonia | `EE_ISIKUKOOD` | two-scale mod 11 |
+| Finland | `FI_HETU` | mod 31 letter lookup |
+| Switzerland | `CH_AHV` | EAN-13-style checksum, fixed `756` prefix |
+| Israel | `IL_TZ` | Luhn-family |
+| Croatia | `HR_OIB` | ISO 7064 MOD 11,10 |
+| Latvia | `LV_PERSONAS_KODS` | weighted mod 11 |
+| North Macedonia | `MK_EMBG` | weighted mod 11 |
+| Belgium | `BE_RRN` | mod 97 |
+| Bosnia and Herzegovina | `BA_JMB` | weighted mod 11 (see note below) |
+| Ukraine | `UA_RNOKPP` | weighted mod 11 mod 10 |
+| Taiwan | `TW_ID` | letter-weighted positional sum |
 
-All 20 were validated against hundreds of locale-appropriate synthetic
+North Macedonia and Bosnia's formats both descend from the shared
+former-Yugoslav JMBG numbering system and use the same weights, but their
+reference algorithms differ in one edge case (weighted sum mod 11 == 1):
+North Macedonia maps it to check digit 0, Bosnia treats it as genuinely
+unallocatable. They're implemented as two separate checked functions, not
+one shared one - an earlier version of this code wrongly assumed they were
+identical, which silently rejected about 1 in 11 otherwise-valid North
+Macedonian numbers (see `tests/test_national_ids.py` for the vector that
+catches a regression).
+
+All 35 were validated against hundreds of locale-appropriate synthetic
 documents generated with [Faker](https://faker.readthedocs.io/) - see
 `tools/audit_national_ids.py`. Where Faker itself can't generate a real
 checksum-valid example for a country (it has gaps too - see the script's

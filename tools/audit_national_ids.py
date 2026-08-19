@@ -39,6 +39,21 @@ LOCALES = {
     "ru_RU": ("Russia", "RU_INN", None),  # faker's ssn() is 12 random digits, no checksum
     "pt_PT": ("Portugal", "PT_NIF", None),  # faker has no NIF generator
     "en_AU": ("Australia", "AU_TFN", None),  # faker has no en_AU ssn provider
+    "ar_DZ": ("Algeria", "DZ_NIN", "ssn"),
+    "de_AT": ("Austria", "AT_SVNR", "ssn"),
+    "el_GR": ("Greece", "EL_AMKA", "ssn"),
+    "es_MX": ("Mexico", "MX_IMSS", "ssn"),
+    "et_EE": ("Estonia", "EE_ISIKUKOOD", "ssn"),
+    "fi_FI": ("Finland", "FI_HETU", "ssn"),
+    "fr_CH": ("Switzerland", "CH_AHV", "ssn"),
+    "he_IL": ("Israel", "IL_TZ", "ssn"),
+    "hr_HR": ("Croatia", "HR_OIB", "ssn"),
+    "lv_LV": ("Latvia", "LV_PERSONAS_KODS", "ssn"),
+    "mk_MK": ("North Macedonia", "MK_EMBG", "ssn"),
+    "nl_BE": ("Belgium", "BE_RRN", "ssn"),
+    "sr_BA": ("Bosnia and Herzegovina", "BA_JMB", "ssn"),
+    "uk_UA": ("Ukraine", "UA_RNOKPP", "ssn"),
+    "zh_TW": ("Taiwan", "TW_ID", "ssn"),
 }
 
 DOCS_PER_LOCALE = 10

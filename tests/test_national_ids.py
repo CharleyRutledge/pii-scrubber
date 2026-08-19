@@ -252,3 +252,97 @@ def test_australian_tfn_conventional_grouping():
     # Regression: the ATO's own correspondence displays this grouped in 3s
     # ("123 456 782") - same class of bug as the other spacing fixes.
     assert "AU_TFN" in _labels("TFN: 123 456 782")
+
+
+def _faker_checksum_valid(locale: str, label: str, seed: int = 1) -> None:
+    from faker import Faker
+
+    fake = Faker(locale)
+    Faker.seed(seed)
+    valid_id = fake.ssn()
+    assert label in _labels(f"ID: {valid_id}"), f"{label} not matched for {locale} value {valid_id!r}"
+
+
+def test_algerian_nin_valid_checksum():
+    _faker_checksum_valid("ar_DZ", "DZ_NIN")
+
+
+def test_austrian_svnr_valid_checksum():
+    _faker_checksum_valid("de_AT", "AT_SVNR")
+
+
+def test_greek_amka_valid_checksum():
+    _faker_checksum_valid("el_GR", "EL_AMKA")
+
+
+def test_mexican_imss_valid_checksum():
+    _faker_checksum_valid("es_MX", "MX_IMSS")
+
+
+def test_estonian_isikukood_valid_checksum():
+    _faker_checksum_valid("et_EE", "EE_ISIKUKOOD")
+
+
+def test_finnish_hetu_valid_checksum():
+    _faker_checksum_valid("fi_FI", "FI_HETU")
+
+
+def test_swiss_ahv_valid_checksum():
+    _faker_checksum_valid("fr_CH", "CH_AHV")
+
+
+def test_israeli_teudat_zehut_valid_checksum():
+    _faker_checksum_valid("he_IL", "IL_TZ")
+
+
+def test_croatian_oib_valid_checksum():
+    _faker_checksum_valid("hr_HR", "HR_OIB")
+
+
+def test_latvian_personas_kods_valid_checksum():
+    _faker_checksum_valid("lv_LV", "LV_PERSONAS_KODS")
+
+
+def test_north_macedonian_embg_valid_checksum():
+    _faker_checksum_valid("mk_MK", "MK_EMBG")
+
+
+def test_belgian_rrn_valid_checksum():
+    _faker_checksum_valid("nl_BE", "BE_RRN")
+
+
+def test_bosnian_jmb_valid_checksum():
+    _faker_checksum_valid("sr_BA", "BA_JMB")
+
+
+def test_bosnian_and_macedonian_checksums_agree_except_one_edge_case():
+    # Both former-Yugoslav JMBG formats share the same weights and mostly
+    # agree, so a real Bosnian JMB usually also satisfies the Macedonian
+    # check (not asserted here since it depends on which case a given
+    # faker-generated value lands in) - but they genuinely differ when the
+    # weighted sum mod 11 equals 1: Macedonia's algorithm maps that to
+    # check digit 0, while Bosnia's treats it as unallocatable (no valid
+    # check digit). An earlier version of this code wrongly assumed one
+    # shared function covered both, which silently rejected ~1/11 of
+    # otherwise-valid North Macedonian numbers - this locks in the fix.
+    from pii_scrubber.national_ids import _ba_jmb_checksum, _mk_embg_checksum
+
+    # Verified to produce weighted-sum mod 11 == 1 with the JMBG weights.
+    digits_with_remainder_1 = [0, 9, 8, 9, 1, 0, 1, 3, 9, 9, 1, 6]
+    assert _mk_embg_checksum(digits_with_remainder_1) == 0
+    assert _ba_jmb_checksum(digits_with_remainder_1) is None
+
+
+def test_ukrainian_rnokpp_valid_checksum():
+    _faker_checksum_valid("uk_UA", "UA_RNOKPP")
+
+
+def test_taiwanese_id_valid_checksum():
+    _faker_checksum_valid("zh_TW", "TW_ID")
+
+
+def test_swiss_ahv_distinctive_756_prefix_low_collision_risk():
+    # An arbitrary 13-digit number that doesn't start with 756 (Switzerland's
+    # GS1 prefix) should never be mistaken for a Swiss AHV number, regardless
+    # of whether it happens to pass the checksum.
+    assert "CH_AHV" not in _labels("Ref: 1234567890123")

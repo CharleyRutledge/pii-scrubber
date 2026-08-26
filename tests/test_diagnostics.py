@@ -68,7 +68,11 @@ def test_open_code_integrity_event_log_launches_on_windows(monkeypatch):
     monkeypatch.setattr(diagnostics.sys, "platform", "win32")
     calls = []
     monkeypatch.setattr(
-        diagnostics.subprocess, "Popen", lambda args: calls.append(args)
+        "os.startfile",
+        lambda path, arguments=None: calls.append((path, arguments)),
+        raising=False,
     )
     assert diagnostics.open_code_integrity_event_log() is True
-    assert calls == [["eventvwr.exe", "/c:Microsoft-Windows-CodeIntegrity/Operational"]]
+    assert calls == [
+        ("eventvwr.exe", "/c:Microsoft-Windows-CodeIntegrity/Operational")
+    ]

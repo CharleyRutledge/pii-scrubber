@@ -3,7 +3,6 @@ load here". Separate from core.py because this is about the *environment*
 (security policy, missing model, etc.), not the scrubbing logic itself.
 """
 
-import subprocess
 import sys
 from dataclasses import dataclass
 
@@ -59,10 +58,19 @@ def open_code_integrity_event_log() -> bool:
     """Launch Event Viewer directly at the CodeIntegrity operational log,
     where the exact blocking policy + file hash for an Application Control
     block is recorded.
+
+    Uses os.startfile (ShellExecute) rather than subprocess.Popen
+    (CreateProcess): eventvwr.exe's manifest requires elevation, and
+    CreateProcess can't trigger the UAC prompt for that - it fails with
+    OSError: [WinError 740] The requested operation requires elevation.
+    ShellExecute handles the elevation prompt correctly.
     """
     if sys.platform != "win32":
         return False
-    subprocess.Popen(
-        ["eventvwr.exe", "/c:Microsoft-Windows-CodeIntegrity/Operational"],
+    import os
+
+    os.startfile(  # noqa: S606 - launching a known system tool, not a file path
+        "eventvwr.exe",
+        arguments="/c:Microsoft-Windows-CodeIntegrity/Operational",
     )
     return True

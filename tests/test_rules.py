@@ -32,6 +32,22 @@ def test_ip_address_detected():
     assert any(m.label == "IP_ADDRESS" for m in matches)
 
 
+def test_eircode_requires_literal_space_not_any_whitespace():
+    # Regression: found via a real CV where the employer name "G4S"
+    # (a real security company) was immediately followed by a line break
+    # and then a year ("G4S\n2019"). The original pattern used bare \s,
+    # which matches newlines too, so this glued-together text falsely
+    # matched as an Eircode and hid a real company name under a
+    # misleading label.
+    matches = find_regex_matches("G4S\n2019")
+    assert not any(m.label == "EIRCODE" for m in matches)
+
+
+def test_eircode_still_matches_real_examples():
+    matches = find_regex_matches("Address: V94 275E")
+    assert any(m.label == "EIRCODE" and m.text == "V94 275E" for m in matches)
+
+
 def test_address_suffix_words_dont_match_as_common_lowercase_english():
     # Regression: "Close", "Court", "Park", "Row", "Way", "Place" are common
     # English words as well as street suffixes. Matching them

@@ -183,6 +183,12 @@ caught:
 5. **Dead code** - a `_US_PASSPORT` regex existed but was never wired
    into detection; removed rather than silently activated, since its
    shape was too collision-prone to ship.
+6. **`EIRCODE` regex used bare `\s`** instead of a literal space, so it
+   matched across newlines - found by running the tool on a real CV where
+   the employer name "G4S" (a real security company) was immediately
+   followed by a line break and then a year ("G4S\n2019"), which false-
+   matched as an Irish postal code and hid a real company name under a
+   misleading label. Fixed by requiring a literal space.
 
 ## How to extend this
 

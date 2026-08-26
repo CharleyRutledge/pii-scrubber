@@ -66,8 +66,12 @@ _MAC_ADDRESS = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 _PPS_NUMBER = re.compile(r"(?<!\d)\d{7}[A-Za-z](?:[AaWw])?")
 
 # Irish Eircode: routing key (letter + 2 alnum) + space + 4-char unique id,
-# e.g. "V94 275E", "D01 YT32".
-_EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z]\s[0-9A-Za-z]{4}\b")
+# e.g. "V94 275E", "D01 YT32". Uses a literal space, not bare \s - found via
+# a real CV where the employer name "G4S" was immediately followed by a
+# newline and then a year ("G4S\n2019"), which \s's newline-matching let
+# through as a false Eircode, hiding a real company name under a
+# misleading label.
+_EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z] [0-9A-Za-z]{4}\b")
 
 # A short window of text around a common street-type suffix is treated as an
 # address. Deliberately NOT anchored to line boundaries (^...$) - text that's

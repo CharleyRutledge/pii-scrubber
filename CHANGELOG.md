@@ -193,6 +193,20 @@ caught:
    followed by a line break and then a year ("G4S\n2019"), which false-
    matched as an Irish postal code and hid a real company name under a
    misleading label. Fixed by requiring a literal space.
+7. **`ADDRESS` regex was fully case-sensitive** - found via a real bank
+   statement whose extracted PDF text rendered the account holder's
+   address in lowercase ("47 quins cottages", " road"), which sailed
+   through completely unredacted (twice - once in the address block,
+   once inside a payment reference string). Fixed by splitting suffix
+   words into an unambiguous group (Road, Cottages, Terrace, ...) matched
+   case-insensitively, and an ambiguous group (Close, Court, Park, Row,
+   Way, Place - all common English words) that stays Title-Case/ALL-CAPS
+   only, preserving the original false-positive fix for those.
+8. **Masked card numbers weren't detected at all** - found via the same
+   real bank statement, which displays cards as `416598******4764`
+   rather than a contiguous digit run. `CREDIT_CARD`'s Luhn check never
+   even considered it a candidate since the asterisks break up the
+   digits. Added a separate pattern for the masked format.
 
 ## How to extend this
 

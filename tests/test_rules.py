@@ -70,6 +70,41 @@ def test_address_suffix_still_matches_title_case_real_address():
     assert any(m.label == "ADDRESS" for m in matches)
 
 
+def test_address_suffix_matches_lowercase_real_bank_statement_text():
+    # Regression: found via a real bank statement whose extracted PDF text
+    # rendered the account holder's address in lowercase ("47 quins
+    # cottages", " road"). The fully case-sensitive version of this rule
+    # (Title Case/ALL CAPS only) let it straight through unredacted.
+    matches = find_regex_matches("47 quins cottages")
+    assert any(m.label == "ADDRESS" for m in matches)
+
+    matches = find_regex_matches("rossbrien road")
+    assert any(m.label == "ADDRESS" for m in matches)
+
+
+def test_address_suffix_ambiguous_words_still_require_capitalization():
+    # The ambiguous suffix words (Close, Court, Park, Row, Way, Place) stay
+    # case-sensitive - only the unambiguous ones (Road, Cottages, ...)
+    # became case-insensitive.
+    text = (
+        "Contact jane.doe@example.com or 555-123-4567 after the close of "
+        "the meeting; let's park the discussion and pick a way forward."
+    )
+    matches = find_regex_matches(text)
+    assert not any(m.label == "ADDRESS" for m in matches)
+
+
+def test_masked_card_number_detected():
+    # Regression: found via a real bank statement, which displays cards as
+    # "416598******4764" (BIN + last 4 digits) rather than a contiguous
+    # digit run - the Luhn-checked CREDIT_CARD rule never even considered
+    # it a candidate since the asterisks break up the digit sequence.
+    matches = find_regex_matches("Card: 416598******4764")
+    assert any(
+        m.label == "CREDIT_CARD" and m.text == "416598******4764" for m in matches
+    )
+
+
 def test_iban_detected_with_conventional_spacing():
     # Regression: found via a real invoice PDF - IBANs are conventionally
     # displayed grouped in 4s with spaces (ISO 13616), not as one unbroken

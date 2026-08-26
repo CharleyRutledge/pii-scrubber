@@ -36,6 +36,14 @@ _SSN = re.compile(r"(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)")
 
 _CREDIT_CARD = re.compile(r"(?<!\d)(?:\d[ -]?){13,19}(?!\d)")
 
+# Masked card number as commonly displayed by banks/payment processors,
+# e.g. "Card: 416598******4764" - reveals the BIN (first 4-6 digits,
+# which identifies the issuing bank) and last 4 digits. The digits aren't
+# a contiguous run (the asterisks break it up), so _CREDIT_CARD's Luhn
+# check never even sees it as a candidate - found via a real bank
+# statement where every masked card reference sailed through unredacted.
+_MASKED_CARD = re.compile(r"(?<!\w)\d{4,6}\*{2,12}\d{4}(?!\w)")
+
 _IPV4 = re.compile(
     r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"
 )
@@ -80,22 +88,28 @@ _EIRCODE = re.compile(r"\b[A-Za-z]\d[0-9A-Za-z] [0-9A-Za-z]{4}\b")
 # swallowing the entire document. Bounding the context window keeps the
 # blast radius small regardless of whether real line breaks are present.
 #
-# Deliberately case-sensitive (Title Case or ALL CAPS only, no re.IGNORECASE):
-# several of these words (Close, Court, Park, Row, Way, Place) are common
-# English words in their own right ("at the close of the meeting"). Matching
-# them case-insensitively caused real false positives that swallowed nearby
-# PII inside this rule's wide context window. Requiring capitalization
-# doesn't fully eliminate the ambiguity (a sentence-initial "Park the car"
-# still capitalizes "Park") but removes the far more common mid-sentence
-# lowercase collision.
-_ADDRESS_SUFFIXES = [
+# Split into two groups by ambiguity, rather than one case-sensitive list:
+# some suffix words (Close, Court, Park, Row, Way, Place) double as common
+# English words ("at the close of the meeting") and stay Title-Case/ALL-CAPS
+# only to avoid the false positives that caused the original case-sensitive
+# fix. The rest (Road, Cottages, Terrace, ...) aren't ordinary English words
+# in their own right, so they're matched case-insensitively - found via a
+# real bank statement whose extracted address text ("47 quins cottages",
+# " road") was all-lowercase and silently missed entirely by the fully
+# case-sensitive version of this rule.
+_ADDRESS_SUFFIXES_ANY_CASE = [
     "Road", "Rd", "Street", "St", "Avenue", "Ave", "Lane", "Ln", "Drive", "Dr",
-    "Way", "Close", "Court", "Ct", "Cottages", "Terrace", "Place", "Pl",
-    "Square", "Sq", "Grove", "Park", "Crescent", "Row", "Walk", "Boulevard", "Blvd",
+    "Cottages", "Terrace", "Square", "Sq", "Grove", "Crescent", "Walk",
+    "Boulevard", "Blvd",
 ]
-_ADDRESS_SUFFIX_PATTERN = "|".join(
-    f"{w}\\.?|{w.upper()}\\.?" for w in _ADDRESS_SUFFIXES
+_ADDRESS_SUFFIXES_TITLE_CASE_ONLY = [
+    "Way", "Close", "Court", "Ct", "Place", "Pl", "Park", "Row",
+]
+_ANY_CASE_PATTERN = "|".join(f"{w}\\.?" for w in _ADDRESS_SUFFIXES_ANY_CASE)
+_TITLE_CASE_PATTERN = "|".join(
+    f"{w}\\.?|{w.upper()}\\.?" for w in _ADDRESS_SUFFIXES_TITLE_CASE_ONLY
 )
+_ADDRESS_SUFFIX_PATTERN = rf"(?i:{_ANY_CASE_PATTERN})|(?:{_TITLE_CASE_PATTERN})"
 _ADDRESS_LINE = re.compile(
     rf"[^\n]{{0,40}}\b(?:{_ADDRESS_SUFFIX_PATTERN})\b[^\n]{{0,40}}"
 )
@@ -133,6 +147,7 @@ def _find_credit_cards(text: str) -> Iterator[re.Match]:
 _SIMPLE_RULES = [
     ("EMAIL", _EMAIL),
     ("PHONE", _PHONE),
+    ("CREDIT_CARD", _MASKED_CARD),
     ("SSN", _SSN),
     ("PPS_NUMBER", _PPS_NUMBER),
     ("IP_ADDRESS", _IPV4),

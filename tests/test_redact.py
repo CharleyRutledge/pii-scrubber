@@ -67,3 +67,28 @@ def test_redact_docx_preserves_paragraph_structure(tmp_path):
     assert "[EMAIL]" in result.paragraphs[0].text
     assert "jane.doe@example.com" not in result.paragraphs[0].text
     assert result.paragraphs[1].text == "This paragraph has no PII."
+
+
+def test_redact_open_after_launches_the_output_file(tmp_path, monkeypatch):
+    # Mocked so this never actually launches a real application.
+    opened = []
+    monkeypatch.setattr("pii_scrubber.redact.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Email jane.doe@example.com now.", encoding="utf-8")
+
+    out = redact_file(src, use_ner=False, open_after=True)
+
+    assert opened == [out]
+
+
+def test_redact_does_not_open_by_default(tmp_path, monkeypatch):
+    opened = []
+    monkeypatch.setattr("pii_scrubber.redact.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Email jane.doe@example.com now.", encoding="utf-8")
+
+    redact_file(src, use_ner=False)
+
+    assert opened == []

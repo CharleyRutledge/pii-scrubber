@@ -38,9 +38,11 @@ def scrub(path: str, no_ner: bool) -> None:
 @click.option("--ocr", is_flag=True,
               help="Also OCR embedded PDF images and black out any that contain PII "
                    "(requires the `ocr` extra + a system Tesseract install).")
-def redact(path: str, output: str | None, no_ner: bool, ocr: bool) -> None:
+@click.option("--open", "open_after", is_flag=True,
+              help="Open the redacted file in its default app once it's written.")
+def redact(path: str, output: str | None, no_ner: bool, ocr: bool, open_after: bool) -> None:
     """Write a redacted copy of PATH in its original file format."""
-    out_path = redact_file(path, output_path=output, use_ner=not no_ner, ocr=ocr)
+    out_path = redact_file(path, output_path=output, use_ner=not no_ner, ocr=ocr, open_after=open_after)
     click.echo(f"Wrote {out_path}")
 
 

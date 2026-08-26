@@ -22,6 +22,10 @@ text:
 | `.json` | string values redacted, keys/numbers/bools untouched |
 
 A CLI (`pii-scrubber scrub` / `pii-scrubber redact`) wraps all of this.
+`redact_file(..., open_after=True)` / `pii-scrubber redact --open` launches
+the redacted file in its default app once written, so you can immediately
+check the result - opt-in, since silently launching an app would be
+surprising in an unattended script/CI context.
 
 ## Languages tested
 

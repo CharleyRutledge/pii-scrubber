@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .core import scrub
 from .html_tools import split_html_segments
+from .open_file import open_with_default_app
 
 
 def redact_file(
@@ -25,6 +26,7 @@ def redact_file(
     ner_model: str = "en_core_web_sm",
     ner_labels: set[str] | None = None,
     ocr: bool = False,
+    open_after: bool = False,
 ) -> Path:
     """Write a redacted copy of `path` in the same file format and return its path.
 
@@ -36,6 +38,12 @@ def redact_file(
     a screenshot). Requires the `ocr` extra and a system Tesseract install -
     see `pii_scrubber.ocr` for setup. Off by default since it's slower and
     pulls in an extra system dependency.
+
+    `open_after` launches the redacted file in whatever app the OS has
+    associated with it once writing finishes, so you can immediately
+    eyeball the result. Off by default - opt in explicitly, since silently
+    launching an app is surprising behavior for anything running
+    unattended (scripts, CI, batch jobs).
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -60,6 +68,9 @@ def redact_file(
         _redact_pdf(path, output_path, use_ner, ner_model, ner_labels, ocr)
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
+
+    if open_after:
+        open_with_default_app(output_path)
 
     return output_path
 

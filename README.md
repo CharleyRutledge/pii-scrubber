@@ -62,6 +62,7 @@ pii-scrubber scrub document.pdf          # print redacted text + counts
 pii-scrubber redact document.pdf         # write document_redacted.pdf
 pii-scrubber redact document.pdf --ocr   # also redact PII baked into images
 pii-scrubber redact document.pdf -o clean.pdf --no-ner  # regex rules only
+pii-scrubber redact document.pdf --open  # open the redacted file when done
 ```
 
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full
@@ -103,6 +104,11 @@ redact_file("intake.pdf", ocr=True)
 # also OCRs embedded images (scanned IDs, screenshots) and blacks out
 # any image whose recognized text contains PII. Requires the `ocr` extra
 # and a system Tesseract install (see below) - off by default.
+
+redact_file("intake.pdf", open_after=True)
+# launches the redacted file in its default app once written, so you can
+# immediately eyeball the result - off by default (surprising behavior for
+# anything running unattended: scripts, CI, batch jobs).
 ```
 
 | File type | What's preserved |

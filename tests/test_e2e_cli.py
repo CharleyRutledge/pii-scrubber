@@ -100,3 +100,42 @@ def test_cli_redact_json_preserves_structure_end_to_end(tmp_path):
 def test_cli_scrub_missing_file_fails_cleanly(tmp_path):
     result = _run_cli("scrub", "does_not_exist.txt", cwd=tmp_path)
     assert result.returncode != 0
+
+
+def test_cli_redact_open_flag_launches_the_output_file(tmp_path, monkeypatch):
+    # Run in-process (not via subprocess like the tests above) and mock the
+    # actual OS launch, since CI runs headless and has no default file
+    # handler (no xdg-open) to safely exercise for real.
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    opened = []
+    monkeypatch.setattr("pii_scrubber.redact.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["redact", str(src), "--open"])
+
+    assert result.exit_code == 0
+    assert opened == [tmp_path / "doc_redacted.txt"]
+
+
+def test_cli_redact_without_open_flag_does_not_launch(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    opened = []
+    monkeypatch.setattr("pii_scrubber.redact.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["redact", str(src)])
+
+    assert result.exit_code == 0
+    assert opened == []

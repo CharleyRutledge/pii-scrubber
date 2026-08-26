@@ -65,10 +65,36 @@ pii-scrubber redact document.pdf -o clean.pdf --no-ner  # regex rules only
 pii-scrubber redact document.pdf --open  # open the redacted file when done
 pii-scrubber scrub document.pdf --open   # write scrubbed text to a temp file and open it
 pii-scrubber scrub document.pdf -o clean.txt --open  # ...or to a chosen path
+pii-scrubber doctor                       # check whether spaCy NER can actually load here
 ```
 
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full
 recorded walkthrough of these commands against a real file.
+
+#### `pii-scrubber doctor`
+
+Diagnoses whether the spaCy NER model (used for `PERSON`/`LOCATION`/
+`ORGANIZATION`/`AFFILIATION` detection) can actually load in this
+environment. On Windows, spaCy's compiled extension modules are
+unsigned, and some machines block unsigned native code from loading via
+**Smart App Control** (Settings → Privacy & security → Windows Security
+→ App & browser control) or an org-managed **WDAC** policy - surfacing
+as `ImportError: DLL load failed ... An Application Control policy has
+blocked this file`. This isn't a pii-scrubber bug; regex-based rules
+(email, phone, national IDs, etc.) are unaffected and keep working via
+`--no-ner`.
+
+When `doctor` detects this specific block, it offers to jump straight
+to the relevant Windows UI instead of making you hunt for it:
+
+- **Smart App Control settings** - shows whether it's Off / Evaluation
+  (can be turned off right there) / On (Microsoft only supports turning
+  it off via a full Windows reinstall).
+- **Event Viewer's CodeIntegrity log** - shows the exact policy and file
+  hash that got blocked, useful for a targeted WDAC exception or an IT
+  request.
+
+Nothing is opened without an explicit "y" at the prompt.
 
 ### Python API
 

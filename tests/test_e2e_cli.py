@@ -24,6 +24,7 @@ def test_cli_help_lists_both_commands(tmp_path):
     assert result.returncode == 0
     assert "scrub" in result.stdout
     assert "redact" in result.stdout
+    assert "doctor" in result.stdout
 
 
 def test_cli_scrub_prints_redacted_text_and_counts(tmp_path):
@@ -220,3 +221,111 @@ def test_cli_scrub_without_open_or_output_writes_no_file(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert opened == []
     assert before == after
+
+
+def test_cli_doctor_reports_ok_when_ner_loads(monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+    from pii_scrubber.diagnostics import NerCheckResult
+
+    monkeypatch.setattr(
+        "pii_scrubber.cli.check_ner_available",
+        lambda: NerCheckResult(ok=True, detail="spaCy NER model loaded fine."),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["doctor"])
+
+    assert result.exit_code == 0
+    assert "OK" in result.output
+
+
+def test_cli_doctor_offers_to_open_settings_when_app_control_blocked(monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+    from pii_scrubber.diagnostics import NerCheckResult
+
+    monkeypatch.setattr(
+        "pii_scrubber.cli.check_ner_available",
+        lambda: NerCheckResult(
+            ok=False,
+            detail="DLL load failed while importing senter: An Application "
+            "Control policy has blocked this file.",
+            blocked_by_app_control=True,
+        ),
+    )
+    monkeypatch.setattr("pii_scrubber.cli.sys.platform", "win32")
+    opened_settings = []
+    opened_log = []
+    monkeypatch.setattr(
+        "pii_scrubber.cli.open_smart_app_control_settings",
+        lambda: opened_settings.append(True),
+    )
+    monkeypatch.setattr(
+        "pii_scrubber.cli.open_code_integrity_event_log",
+        lambda: opened_log.append(True),
+    )
+
+    runner = CliRunner()
+    # Confirm "yes" to opening settings, "no" to opening the event log.
+    result = runner.invoke(main, ["doctor"], input="y\nn\n")
+
+    assert result.exit_code == 0
+    assert opened_settings == [True]
+    assert opened_log == []
+    assert "Smart App Control" in result.output
+
+
+def test_cli_doctor_says_no_when_declined(monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+    from pii_scrubber.diagnostics import NerCheckResult
+
+    monkeypatch.setattr(
+        "pii_scrubber.cli.check_ner_available",
+        lambda: NerCheckResult(
+            ok=False,
+            detail="An Application Control policy has blocked this file.",
+            blocked_by_app_control=True,
+        ),
+    )
+    monkeypatch.setattr("pii_scrubber.cli.sys.platform", "win32")
+    opened = []
+    monkeypatch.setattr(
+        "pii_scrubber.cli.open_smart_app_control_settings",
+        lambda: opened.append(True),
+    )
+    monkeypatch.setattr(
+        "pii_scrubber.cli.open_code_integrity_event_log",
+        lambda: opened.append(True),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["doctor"], input="n\nn\n")
+
+    assert result.exit_code == 0
+    assert opened == []
+
+
+def test_cli_doctor_reports_missing_model_without_offering_settings(monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+    from pii_scrubber.diagnostics import NerCheckResult
+
+    monkeypatch.setattr(
+        "pii_scrubber.cli.check_ner_available",
+        lambda: NerCheckResult(
+            ok=False, detail="[E050] Can't find model", blocked_by_app_control=False
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["doctor"])
+
+    assert result.exit_code == 0
+    assert "--no-ner" in result.output
+    assert "Smart App Control" not in result.output

@@ -62,14 +62,36 @@ pii-scrubber scrub document.pdf          # print redacted text + counts
 pii-scrubber redact document.pdf         # write document_redacted.pdf
 pii-scrubber redact document.pdf --ocr   # also redact PII baked into images
 pii-scrubber redact document.pdf -o clean.pdf --no-ner  # regex rules only
-pii-scrubber redact document.pdf --open  # open the redacted file when done
-pii-scrubber scrub document.pdf --open   # write scrubbed text to a temp file and open it
+pii-scrubber redact document.pdf --open  # prompt to choose an app to open the redacted file with
+pii-scrubber scrub document.pdf --open   # write scrubbed text to a temp file, then prompt the same way
 pii-scrubber scrub document.pdf -o clean.txt --open  # ...or to a chosen path
 pii-scrubber doctor                       # check whether spaCy NER can actually load here
+pii-scrubber upload document.pdf          # copy a file into local, offline storage
+pii-scrubber list                         # show what's stored locally
+pii-scrubber menu                         # interactive menu - pick an action instead of flags
+pii-scrubber                              # (no command) also launches the menu
 ```
 
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full
 recorded walkthrough of these commands against a real file.
+
+#### `pii-scrubber menu`
+
+An interactive "PII - Scrubber" menu for running everything above without
+remembering flags - upload a file, scrub it, redact it, check stored
+files, or run `doctor`, all from a numbered prompt. Running `pii-scrubber`
+with no arguments launches it directly.
+
+#### Local file storage
+
+`pii-scrubber upload <path>` copies a file into `~/.pii-scrubber/uploads`
+- a local-only folder, nothing is sent anywhere over the network. Files
+uploaded this way show up as pickable options in the menu's file prompts.
+Scrub/redact runs started from the menu save their output into
+`~/.pii-scrubber/outputs`, named `<original name>_scrubbed.txt` or
+`<original name>_redacted<ext>`, deduped with a `(1)`, `(2)`, ... suffix
+if a name's already taken so nothing is ever silently overwritten.
+`pii-scrubber list` shows everything currently stored in both folders.
 
 #### `pii-scrubber doctor`
 

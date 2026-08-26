@@ -7,6 +7,7 @@ to the unit tests elsewhere that call library functions directly.
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 
 def _run_cli(*args: str, cwd) -> subprocess.CompletedProcess:
@@ -308,6 +309,128 @@ def test_cli_doctor_says_no_when_declined(monkeypatch):
 
     assert result.exit_code == 0
     assert opened == []
+
+
+def test_cli_upload_copies_into_local_workspace(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    src = tmp_path / "doc.txt"
+    src.write_text("hello", encoding="utf-8")
+
+    dest = tmp_path / "uploads" / "doc.txt"
+    monkeypatch.setattr("pii_scrubber.cli.import_file", lambda path: dest)
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["upload", str(src)])
+
+    assert result.exit_code == 0
+    assert "Uploaded to" in result.output
+
+
+def test_cli_list_shows_uploads_and_outputs(monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    monkeypatch.setattr(
+        "pii_scrubber.cli.list_workspace_files",
+        lambda: ([Path("uploads/a.txt")], [Path("outputs/a_redacted.txt")]),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["list"])
+
+    assert result.exit_code == 0
+    assert "a.txt" in result.output
+    assert "a_redacted.txt" in result.output
+
+
+def test_cli_menu_exits_immediately_on_choice_zero():
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["menu"], input="0\n")
+
+    assert result.exit_code == 0
+    assert "PII - Scrubber" in result.output
+
+
+def test_cli_bare_invocation_launches_menu():
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    runner = CliRunner()
+    result = runner.invoke(main, [], input="0\n")
+
+    assert result.exit_code == 0
+    assert "PII - Scrubber" in result.output
+
+
+def test_cli_menu_upload_then_exit(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    src = tmp_path / "doc.txt"
+    src.write_text("hello", encoding="utf-8")
+    uploaded = tmp_path / "uploaded_doc.txt"
+    monkeypatch.setattr("pii_scrubber.cli.import_file", lambda path: uploaded)
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["menu"], input=f"1\n{src}\n0\n")
+
+    assert result.exit_code == 0
+    assert "Uploaded to" in result.output
+
+
+def test_cli_menu_scrub_flow(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    monkeypatch.setattr("pii_scrubber.cli.list_workspace_files", lambda: ([], []))
+    monkeypatch.setattr(
+        "pii_scrubber.cli.output_path_for",
+        lambda original, label, suffix=None: tmp_path / f"{original.stem}_{label}.txt",
+    )
+
+    runner = CliRunner()
+    # 2 = scrub, path, use NER? -> n, save? -> n (skip actually saving/opening)
+    result = runner.invoke(main, ["menu"], input=f"2\n{src}\nn\nn\n0\n")
+
+    assert result.exit_code == 0
+    assert "[EMAIL]" in result.output
+
+
+def test_cli_menu_redact_flow(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+    out_path = tmp_path / "doc_redacted.txt"
+
+    monkeypatch.setattr("pii_scrubber.cli.list_workspace_files", lambda: ([], []))
+    monkeypatch.setattr(
+        "pii_scrubber.cli.output_path_for", lambda original, label, suffix=None: out_path
+    )
+    monkeypatch.setattr("pii_scrubber.cli.redact_file", lambda *a, **kw: out_path)
+
+    runner = CliRunner()
+    # 3 = redact, path, use NER? -> n, open? -> n
+    result = runner.invoke(main, ["menu"], input=f"3\n{src}\nn\nn\n0\n")
+
+    assert result.exit_code == 0
+    assert f"Wrote {out_path}" in result.output
 
 
 def test_cli_doctor_reports_missing_model_without_offering_settings(monkeypatch):

@@ -22,17 +22,29 @@ class ScrubResult:
 
 
 def _merge_overlaps(matches: list[EntityMatch]) -> list[EntityMatch]:
-    """Sort by start; drop matches fully contained in / overlapping an earlier,
-    longer match. Regex rules win over NER on overlap since they're more precise.
+    """Keep the longest match wherever matches overlap; regex rules win over
+    NER on an exact tie. Regression: sorting candidates by start position
+    (as this used to) picks whichever match happens to start first, so a
+    short NER PERSON match starting a few characters before a much longer
+    ADDRESS regex match that merely overlaps it (not fully contains it)
+    would get kept first - and the far bigger match got silently dropped
+    entirely for "overlapping an earlier match", not redacted at all. Found
+    via a real bank statement payment reference ("Charley rutledge
+    Elizabeth scanlon 47 quins cottages rossbrien road...") where NER's
+    "Charley" match (chars 16-23) was kept first, and the ADDRESS match
+    covering the whole phrase (chars 20-98) was then dropped as
+    "overlapping" - leaking the entire address and both surnames. Now
+    longest-match-wins regardless of start order, with overlap checked
+    against every match already kept (not just the most recent one), since
+    sorting by length breaks the "kept list is in start order" assumption
+    the old single last_end check relied on.
     """
-    ordered = sorted(matches, key=lambda m: (m.start, -(m.end - m.start), m.source != "regex"))
+    ordered = sorted(matches, key=lambda m: (-(m.end - m.start), m.source != "regex", m.start))
     kept: list[EntityMatch] = []
-    last_end = -1
     for m in ordered:
-        if m.start >= last_end:
+        if not any(m.start < k.end and k.start < m.end for k in kept):
             kept.append(m)
-            last_end = m.end
-    return kept
+    return sorted(kept, key=lambda m: m.start)
 
 
 _ADDRESS_ADJACENT_LABELS = {"ADDRESS", "EIRCODE"}

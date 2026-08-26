@@ -207,6 +207,26 @@ caught:
    rather than a contiguous digit run. `CREDIT_CARD`'s Luhn check never
    even considered it a candidate since the asterisks break up the
    digits. Added a separate pattern for the masked format.
+9. **Overlap merge dropped a longer match entirely** - the same real
+   statement had a payment reference ("Charley rutledge Elizabeth
+   scanlon 47 quins cottages rossbrien road..."). NER found "Charley" as
+   a short PERSON match starting a few characters before the much
+   longer ADDRESS regex match, which only partially overlapped it (not
+   fully contained it). The merge step sorted candidates by start
+   position, kept "Charley" first, then dropped the entire ADDRESS
+   match as "overlapping an earlier match" - silently leaking the whole
+   address and both surnames, none of which showed up as a detection
+   gap since detection had actually found it correctly. Fixed by
+   sorting by match length first (longest wins) regardless of start
+   position, checked against every match already kept rather than just
+   the most recent one.
+10. **PDF redaction silently failed on some multi-word matches** - even
+    with #9 fixed, PyMuPDF's `page.search_for()` occasionally can't find
+    a correctly-detected multi-word phrase as one contiguous string on
+    the page (internal text-run boundaries), while every individual word
+    in it is independently findable. Added a per-word fallback so a
+    match that fails the full-phrase search still gets redacted instead
+    of silently staying exposed.
 
 ## How to extend this
 

@@ -178,7 +178,19 @@ def _redact_pdf(
                 pii_strings = {e.text for e in result.entities if e.text.strip()}
 
                 for pii_text in pii_strings:
-                    for rect in page.search_for(pii_text):
+                    rects = page.search_for(pii_text)
+                    if not rects and " " in pii_text:
+                        # PyMuPDF's search_for occasionally can't find a
+                        # multi-word phrase as one contiguous string even
+                        # though every word in it individually is on the
+                        # page (internal text-run boundaries, hyphenation,
+                        # etc.) - rather than silently leave a correctly
+                        # detected match completely unredacted, fall back
+                        # to redacting each word in it separately.
+                        rects = [
+                            r for word in pii_text.split() for r in page.search_for(word)
+                        ]
+                    for rect in rects:
                         page.add_redact_annot(rect, fill=(0, 0, 0))
 
             if has_broken_glyphs:

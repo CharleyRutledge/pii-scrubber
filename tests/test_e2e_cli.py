@@ -139,3 +139,84 @@ def test_cli_redact_without_open_flag_does_not_launch(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert opened == []
+
+
+def test_cli_scrub_output_flag_writes_redacted_text(tmp_path):
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    result = _run_cli("scrub", "doc.txt", "-o", "clean.txt", cwd=tmp_path)
+
+    assert result.returncode == 0
+    out_path = tmp_path / "clean.txt"
+    assert out_path.exists()
+    content = out_path.read_text(encoding="utf-8")
+    assert "[EMAIL]" in content
+    assert "jane.doe@example.com" not in content
+
+
+def test_cli_scrub_open_flag_writes_temp_file_and_launches_it(tmp_path, monkeypatch):
+    # Run in-process (not via subprocess) and mock the actual OS launch,
+    # since CI runs headless and has no default file handler to safely
+    # exercise for real.
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    opened = []
+    monkeypatch.setattr("pii_scrubber.cli.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["scrub", str(src), "--open"])
+
+    assert result.exit_code == 0
+    assert len(opened) == 1
+    opened_path = opened[0]
+    assert opened_path.exists()
+    content = opened_path.read_text(encoding="utf-8")
+    assert "[EMAIL]" in content
+    opened_path.unlink()  # clean up the temp file this test created
+
+
+def test_cli_scrub_open_flag_writes_to_explicit_output_path(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    opened = []
+    monkeypatch.setattr("pii_scrubber.cli.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+    dest = tmp_path / "clean.txt"
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["scrub", str(src), "-o", str(dest), "--open"])
+
+    assert result.exit_code == 0
+    assert opened == [dest]
+    assert "[EMAIL]" in dest.read_text(encoding="utf-8")
+
+
+def test_cli_scrub_without_open_or_output_writes_no_file(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pii_scrubber.cli import main
+
+    opened = []
+    monkeypatch.setattr("pii_scrubber.cli.open_with_default_app", opened.append)
+
+    src = tmp_path / "doc.txt"
+    src.write_text("Contact jane.doe@example.com now.", encoding="utf-8")
+
+    before = set(tmp_path.iterdir())
+    runner = CliRunner()
+    result = runner.invoke(main, ["scrub", str(src)])
+    after = set(tmp_path.iterdir())
+
+    assert result.exit_code == 0
+    assert opened == []
+    assert before == after

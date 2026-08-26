@@ -1,10 +1,14 @@
 """Command-line interface: `pii-scrubber scrub <file>` / `pii-scrubber redact <file>`."""
 
+import os
 import sys
+import tempfile
+from pathlib import Path
 
 import click
 
 from .core import scrub_file
+from .open_file import open_with_default_app
 from .redact import redact_file
 
 
@@ -17,7 +21,12 @@ def main() -> None:
 @main.command()
 @click.argument("path", type=click.Path(exists=True, dir_okay=False))
 @click.option("--no-ner", is_flag=True, help="Skip spaCy NER, regex rules only.")
-def scrub(path: str, no_ner: bool) -> None:
+@click.option("-o", "--output", type=click.Path(dir_okay=False), default=None,
+              help="Also write the redacted text to this file (scrub always prints to stdout too).")
+@click.option("--open", "open_after", is_flag=True,
+              help="Open the redacted text in its default app (written to --output, "
+                   "or a temp file if --output wasn't given).")
+def scrub(path: str, no_ner: bool, output: str | None, open_after: bool) -> None:
     """Print PII-redacted text extracted from PATH, plus a summary count."""
     result = scrub_file(path, use_ner=not no_ner)
     click.echo(result.text)
@@ -28,6 +37,20 @@ def scrub(path: str, no_ner: bool) -> None:
             click.echo(f"  {label}: {count}", err=True)
     else:
         click.echo("No PII detected.", err=True)
+
+    out_path: Path | None = None
+    if output:
+        out_path = Path(output)
+    elif open_after:
+        fd, name = tempfile.mkstemp(suffix=".txt", prefix="pii-scrubber-")
+        os.close(fd)  # close the raw descriptor before reopening via write_text
+        out_path = Path(name)
+
+    if out_path is not None:
+        out_path.write_text(result.text, encoding="utf-8")
+
+    if open_after and out_path is not None:
+        open_with_default_app(out_path)
 
 
 @main.command()

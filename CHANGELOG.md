@@ -25,7 +25,10 @@ A CLI (`pii-scrubber scrub` / `pii-scrubber redact`) wraps all of this.
 `redact_file(..., open_after=True)` / `pii-scrubber redact --open` launches
 the redacted file in its default app once written, so you can immediately
 check the result - opt-in, since silently launching an app would be
-surprising in an unattended script/CI context.
+surprising in an unattended script/CI context. `pii-scrubber scrub --open`
+does the same for `scrub` (which normally only prints to stdout): it
+writes the redacted text to `--output` if given, otherwise a temp file,
+then opens that.
 
 ## Languages tested
 

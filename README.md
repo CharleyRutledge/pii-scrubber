@@ -63,6 +63,8 @@ pii-scrubber redact document.pdf         # write document_redacted.pdf
 pii-scrubber redact document.pdf --ocr   # also redact PII baked into images
 pii-scrubber redact document.pdf -o clean.pdf --no-ner  # regex rules only
 pii-scrubber redact document.pdf --open  # open the redacted file when done
+pii-scrubber scrub document.pdf --open   # write scrubbed text to a temp file and open it
+pii-scrubber scrub document.pdf -o clean.txt --open  # ...or to a chosen path
 ```
 
 See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full

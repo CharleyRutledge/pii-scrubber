@@ -175,6 +175,15 @@ def _build_steps(python_exe: str) -> list[_Step]:
             "cat patient_intake_redacted.txt",
         )
     )
+    steps.append(
+        _Step(
+            "Check whether this environment can actually run spaCy NER "
+            "(catches a Windows Application Control block before it "
+            "surfaces mid-scrub).",
+            [*cli, "doctor"],
+            "pii-scrubber doctor",
+        )
+    )
     return steps
 
 

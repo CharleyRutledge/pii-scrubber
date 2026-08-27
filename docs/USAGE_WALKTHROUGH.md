@@ -4,21 +4,31 @@ This walkthrough is generated directly from a real, passing run of the CLI (see 
 
 ![demo](assets/demo.gif)
 
+`menu`, `upload`, and `list` aren't shown below since they're interactive
+or touch your local `~/.pii-scrubber` folder - see the
+[Usage](../README.md#usage) section of the README for those.
+
 ## 1. See what the CLI offers.
 
 ```console
 $ pii-scrubber --help
-Usage: pii-scrubber [OPTIONS] COMMAND [ARGS]...
+Usage: pii-scrubber [OPTIONS] [COMMAND] [ARGS]...
 
   Scrub PII from documents, locally, before you paste/upload them elsewhere.
+
+  Run with no command for an interactive menu.
 
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
 
 Commands:
+  doctor  Check whether spaCy NER can actually load in this environment.
+  list    List files stored locally by pii-scrubber (uploads and outputs).
+  menu    Interactive "PII - Scrubber" menu - pick an action instead of...
   redact  Write a redacted copy of PATH in its original file format.
   scrub   Print PII-redacted text extracted from PATH, plus a summary count.
+  upload  Copy PATH into pii-scrubber's local, offline file storage...
 ```
 
 ## 2. Scrub a plain text file and preview the redacted text + a summary count, without writing any file.
@@ -144,4 +154,12 @@ Name: [PERSON]: [EMAIL]
 Phone: [PHONE]
 SSN: [SSN]
 Employer: [ORGANIZATION], located in [LOCATION].
+```
+
+## 11. Check whether this environment can actually run spaCy NER (catches a Windows Application Control block before it surfaces mid-scrub).
+
+```console
+$ pii-scrubber doctor
+Checking spaCy NER availability...
+OK: spaCy NER model loaded fine.
 ```

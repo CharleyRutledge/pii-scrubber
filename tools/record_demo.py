@@ -40,9 +40,9 @@ def _load_font() -> ImageFont.FreeTypeFont:
     return ImageFont.load_default(size=_FONT_SIZE)
 
 
-def _run(command: list[str], cwd: Path) -> tuple[str, int]:
+def _run(command: list[str], cwd: Path, stdin: str | None = None) -> tuple[str, int]:
     proc = subprocess.run(
-        command, cwd=cwd, capture_output=True, text=True, encoding="utf-8"
+        command, cwd=cwd, input=stdin, capture_output=True, text=True, encoding="utf-8"
     )
     combined = proc.stdout + proc.stderr
     return combined, proc.returncode
@@ -121,10 +121,17 @@ def _setup_fixtures(workspace: Path) -> None:
 
 
 class _Step:
-    def __init__(self, description: str, command: list[str], display_command: str):
+    def __init__(
+        self,
+        description: str,
+        command: list[str],
+        display_command: str,
+        stdin: str | None = None,
+    ):
         self.description = description
         self.command = command
         self.display_command = display_command
+        self.stdin = stdin
         self.output = ""
         self.returncode = 0
 
@@ -182,6 +189,17 @@ def _build_steps(python_exe: str) -> list[_Step]:
             "surfaces mid-scrub).",
             [*cli, "doctor"],
             "pii-scrubber doctor",
+        )
+    )
+    steps.append(
+        _Step(
+            "The interactive menu (also launched by running `pii-scrubber` "
+            "with no command) - pick an action instead of remembering "
+            "flags. Exiting immediately here (choice 0) since the other "
+            "options touch your local ~/.pii-scrubber folder.",
+            [*cli, "menu"],
+            "pii-scrubber menu",
+            stdin="0\n",
         )
     )
     return steps
@@ -262,7 +280,7 @@ def generate(docs_dir: Path) -> dict:
 
         steps = _build_steps(sys.executable)
         for step in steps:
-            step.output, step.returncode = _run(step.command, cwd=workspace)
+            step.output, step.returncode = _run(step.command, cwd=workspace, stdin=step.stdin)
 
     font = _load_font()
     frames = _render_frames(steps, font)
@@ -290,6 +308,10 @@ def _render_markdown(steps: list[_Step]) -> str:
         "the actual output produced by that run, not hand-written.",
         "",
         "![demo](assets/demo.gif)",
+        "",
+        "`upload` and `list` aren't shown below since their output includes "
+        "your local `~/.pii-scrubber` path - see the "
+        "[Usage](../README.md#usage) section of the README for those.",
         "",
     ]
     for i, step in enumerate(steps, start=1):

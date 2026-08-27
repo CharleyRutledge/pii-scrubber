@@ -4,9 +4,7 @@ This walkthrough is generated directly from a real, passing run of the CLI (see 
 
 ![demo](assets/demo.gif)
 
-`menu`, `upload`, and `list` aren't shown below since they're interactive
-or touch your local `~/.pii-scrubber` folder - see the
-[Usage](../README.md#usage) section of the README for those.
+`upload` and `list` aren't shown below since their output includes your local `~/.pii-scrubber` path - see the [Usage](../README.md#usage) section of the README for those.
 
 ## 1. See what the CLI offers.
 
@@ -162,4 +160,21 @@ Employer: [ORGANIZATION], located in [LOCATION].
 $ pii-scrubber doctor
 Checking spaCy NER availability...
 OK: spaCy NER model loaded fine.
+```
+
+## 12. The interactive menu (also launched by running `pii-scrubber` with no command) - pick an action instead of remembering flags. Exiting immediately here (choice 0) since the other options touch your local ~/.pii-scrubber folder.
+
+```console
+$ pii-scrubber menu
+================================
+      PII - Scrubber
+================================
+
+1) Upload a file
+2) Scrub a file (print redacted text)
+3) Redact a file (save a cleaned copy)
+4) List stored files
+5) Doctor (check NER availability)
+0) Exit
+Choose an option (0, 1, 2, 3, 4, 5): 
 ```

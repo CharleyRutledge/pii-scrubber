@@ -28,8 +28,21 @@ health-insurance detection) and what's explicitly not implemented yet.
 
 ## Install
 
+Not yet published to PyPI - see
+[CONTRIBUTING.md § Releasing to PyPI](CONTRIBUTING.md#releasing-to-pypi)
+for the one-time setup. Once released, this will work directly:
+
 ```bash
-pip install -e ".[all]"   # pdf + docx + ocr support
+pip install "pii-scrubber[all]"   # pdf + docx + ocr support
+python -m spacy download en_core_web_sm
+```
+
+Until then, install from source:
+
+```bash
+git clone https://github.com/CharleyRutledge/pii-scrubber.git
+cd pii-scrubber
+pip install -e ".[all]"
 python -m spacy download en_core_web_sm
 ```
 

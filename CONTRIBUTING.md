@@ -83,6 +83,41 @@ in the sample). `tests/test_e2e_recording.py` runs the same pipeline in CI
 to catch it failing outright, but won't catch a stale GIF - that needs a
 human to notice the diff and rerun the command above.
 
+## Releasing to PyPI
+
+`.github/workflows/release.yml` builds and publishes automatically
+whenever a GitHub Release is published - it uses PyPI's
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC),
+so there's no API token to generate or store as a secret.
+
+**One-time setup (do this before the first release):**
+
+1. Create a PyPI account at [pypi.org](https://pypi.org) if you don't
+   have one, with 2FA enabled (PyPI requires it for new accounts).
+2. Go to [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/)
+   and add a new **pending** trusted publisher (PyPI supports registering
+   one before the project exists on PyPI yet):
+   - PyPI project name: `pii-scrubber`
+   - Owner: `CharleyRutledge`
+   - Repository name: `pii-scrubber`
+   - Workflow filename: `release.yml`
+   - Environment name: `pypi`
+3. In the GitHub repo, create an environment named `pypi` (Settings →
+   Environments) - the workflow deploys to it, matching what you
+   registered on PyPI above. No secrets need to be added to it.
+
+**Every release after that:**
+
+1. Bump `version` in `pyproject.toml`.
+2. Tag it and create a GitHub Release from that tag (via the GitHub UI,
+   or `gh release create v0.2.0 --generate-notes`).
+3. Publishing the release triggers the workflow automatically - check
+   the Actions tab, then confirm the new version shows up at
+   `https://pypi.org/project/pii-scrubber/`.
+
+A version can only be uploaded to PyPI once, ever - if a release build
+fails validation, bump the version again rather than trying to reuse it.
+
 ## Reporting a missed detection
 
 If you find real PII the tool fails to catch, please don't post the

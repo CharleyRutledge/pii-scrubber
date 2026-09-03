@@ -1,5 +1,8 @@
 # pii-scrubber
 
+[![PyPI version](https://img.shields.io/pypi/v/pii-scrubber?logo=pypi&logoColor=white)](https://pypi.org/project/pii-scrubber/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pii-scrubber?logo=python&logoColor=white)](https://pypi.org/project/pii-scrubber/)
+[![License: MIT](https://img.shields.io/pypi/l/pii-scrubber)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/m61v0m5kun)
 
 A Python library for scrubbing personally identifiable information (PII)
@@ -28,21 +31,24 @@ health-insurance detection) and what's explicitly not implemented yet.
 
 ## Install
 
-Not yet published to PyPI - see
-[CONTRIBUTING.md § Releasing to PyPI](CONTRIBUTING.md#releasing-to-pypi)
-for the one-time setup. Once released, this will work directly:
-
 ```bash
 pip install "pii-scrubber[all]"   # pdf + docx + ocr support
 python -m spacy download en_core_web_sm
 ```
 
-Until then, install from source:
+`pip install pii-scrubber` alone gets you the core (text/HTML/CSV/JSON +
+all regex and NER detection); the `[all]` extra adds PDF, DOCX, and OCR
+support. The spaCy model download is a separate step because it's large
+and only needed for name/location/organization (NER) detection - skip it
+if you only want the regex rules (run with `--no-ner`).
+
+To work on pii-scrubber itself (tests, contributing), install from source
+instead:
 
 ```bash
 git clone https://github.com/CharleyRutledge/pii-scrubber.git
 cd pii-scrubber
-pip install -e ".[all]"
+pip install -e ".[dev]"
 python -m spacy download en_core_web_sm
 ```
 
@@ -52,15 +58,8 @@ Then, from the command line:
 pii-scrubber scrub your_document.pdf
 ```
 
-For library development (running the test suite, contributing), use the
-`dev` extra instead:
-
-```bash
-pip install -e ".[dev]"
-python -m spacy download en_core_web_sm
-```
-
-`ocr` also requires a system Tesseract OCR install (not installable via pip):
+The `ocr` extra also requires a system Tesseract OCR install (not
+installable via pip):
 
 ```powershell
 winget install --id UB-Mannheim.TesseractOCR

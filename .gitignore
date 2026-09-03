@@ -7,3 +7,7 @@ dist/
 .venv/
 venv/
 .env
+
+# coverage data
+.coverage
+htmlcov/

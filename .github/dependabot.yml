@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned versions current, so a runner Node-runtime
+  # deprecation (e.g. the Node 20 -> 24 move) is caught by an automated PR
+  # instead of surfacing as a CI warning nobody actioned.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  # Keep Python dependency ranges current.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"

@@ -60,7 +60,7 @@ formats below) don't have this limitation.
 | Category | Labels | Detection |
 |---|---|---|
 | Contact/network | `EMAIL`, `PHONE`, `IP_ADDRESS`, `MAC_ADDRESS`, `URL`, `FILE_PATH`, `SOCIAL_PROFILE` | regex |
-| Financial | `CREDIT_CARD`, `IBAN` | regex, Luhn / mod-97 |
+| Financial | `CREDIT_CARD`, `IBAN`, `BIC` | regex, Luhn / mod-97; BIC country-code + label validated |
 | Structural | `ADDRESS` | regex, bounded context window |
 | People/places/orgs | `PERSON`, `LOCATION`, `ORGANIZATION`, `AFFILIATION` | spaCy NER, plus a title-prefixed regex fallback (`Mr./Dr./MRS` + name) for cases NER misses |
 | National IDs | 39 countries - see below | regex, checksum-validated where a real algorithm exists |
@@ -227,6 +227,16 @@ caught:
     in it is independently findable. Added a per-word fallback so a
     match that fails the full-phrase search still gets redacted instead
     of silently staying exposed.
+11. **BIC / SWIFT codes weren't detected** - the same statement printed
+    the bank's BIC (`REVOIE23`) right next to the IBAN, fully exposed.
+    Added a `BIC` rule, but deliberately guarded it two ways because the
+    raw 8/11-char shape collides badly with ordinary ALL-CAPS words that
+    carry a valid ISO country code in the country position ("DATABASE" =
+    DATA+BA+SE, "RESEARCH" = RESE+AR+CH): (a) the country code must be a
+    real ISO 3166-1 value, and (b) a "BIC"/"SWIFT" label must precede the
+    code. The label requirement is what actually makes it safe; the
+    trade-off is that an unlabelled BIC in free text isn't caught, which
+    is far preferable to over-redacting every "DATABASE"/"RESEARCH".
 
 ## How to extend this
 

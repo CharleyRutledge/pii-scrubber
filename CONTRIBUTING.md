@@ -90,30 +90,42 @@ whenever a GitHub Release is published - it uses PyPI's
 [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC),
 so there's no API token to generate or store as a secret.
 
-**One-time setup (do this before the first release):**
+This is already set up and live (`pii-scrubber` 0.1.0 is on PyPI). The
+setup below is recorded for reference / for re-creating it elsewhere.
 
-1. Create a PyPI account at [pypi.org](https://pypi.org) if you don't
-   have one, with 2FA enabled (PyPI requires it for new accounts).
+**The `pypi` GitHub environment is intentionally configured so releases
+publish with no manual approval step.** Its only protection rule is a
+deployment **tag** policy of `v*`, which scopes trusted publishing to
+release tags without gating on a reviewer click. Do **not** add a
+"Required reviewers" rule to it: that turns every release into a run
+stuck in `waiting` until someone approves it in the Actions UI (we hit
+exactly that during the 0.1.0 release). The tag restriction is the
+security boundary that matters here; the reviewer gate just adds
+friction.
+
+**One-time setup (already done for this repo):**
+
+1. Create a PyPI account at [pypi.org](https://pypi.org) with 2FA
+   enabled (PyPI requires it for new accounts).
 2. Go to [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/)
-   and add a new **pending** trusted publisher (PyPI supports registering
-   one before the project exists on PyPI yet):
+   and add a trusted publisher:
    - PyPI project name: `pii-scrubber`
    - Owner: `CharleyRutledge`
    - Repository name: `pii-scrubber`
    - Workflow filename: `release.yml`
    - Environment name: `pypi`
-3. In the GitHub repo, create an environment named `pypi` (Settings →
-   Environments) - the workflow deploys to it, matching what you
-   registered on PyPI above. No secrets need to be added to it.
+3. In the GitHub repo (Settings → Environments), create an environment
+   named `pypi`. Add **only** a deployment-tag rule allowing `v*`; add no
+   secrets and no required reviewers.
 
-**Every release after that:**
+**Every release:**
 
 1. Bump `version` in `pyproject.toml`.
-2. Tag it and create a GitHub Release from that tag (via the GitHub UI,
-   or `gh release create v0.2.0 --generate-notes`).
-3. Publishing the release triggers the workflow automatically - check
-   the Actions tab, then confirm the new version shows up at
-   `https://pypi.org/project/pii-scrubber/`.
+2. Tag it `vX.Y.Z` and create a GitHub Release from that tag
+   (`gh release create v0.2.0 --generate-notes`).
+3. Publishing the release triggers the workflow automatically and it
+   publishes without any approval click - check the Actions tab, then
+   confirm the new version at `https://pypi.org/project/pii-scrubber/`.
 
 A version can only be uploaded to PyPI once, ever - if a release build
 fails validation, bump the version again rather than trying to reuse it.

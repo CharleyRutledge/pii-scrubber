@@ -1,6 +1,7 @@
 import json
 
 import docx
+import pytest
 
 from pii_scrubber import redact_file
 
@@ -67,6 +68,70 @@ def test_redact_docx_preserves_paragraph_structure(tmp_path):
     assert "[EMAIL]" in result.paragraphs[0].text
     assert "jane.doe@example.com" not in result.paragraphs[0].text
     assert result.paragraphs[1].text == "This paragraph has no PII."
+
+
+def test_redact_html_keeps_tags_and_redacts_only_text(tmp_path):
+    src = tmp_path / "page.html"
+    src.write_text(
+        "<html><body>\n"
+        "<h1>Contact</h1>\n"
+        '<p class="lead">Reach jane@example.com or 555-123-4567.</p>\n'
+        "</body></html>\n",
+        encoding="utf-8",
+    )
+
+    out = redact_file(src, use_ner=False)
+    content = out.read_text(encoding="utf-8")
+
+    # Tags/attributes untouched...
+    assert "<h1>Contact</h1>" in content
+    assert 'class="lead"' in content
+    # ...but the PII in the visible text is gone.
+    assert "jane@example.com" not in content
+    assert "555-123-4567" not in content
+    assert "[EMAIL]" in content
+    assert "[PHONE]" in content
+
+
+def test_redact_docx_redacts_table_cells(tmp_path):
+    src = tmp_path / "table.docx"
+    document = docx.Document()
+    table = document.add_table(rows=1, cols=2)
+    table.rows[0].cells[0].text = "Jane Doe"
+    table.rows[0].cells[1].text = "jane@example.com"
+    document.save(str(src))
+
+    out = redact_file(src, use_ner=False)
+    result = docx.Document(str(out))
+    cell_texts = [c.text for row in result.tables[0].rows for c in row.cells]
+
+    assert "jane@example.com" not in cell_texts
+    assert any("[EMAIL]" in t for t in cell_texts)
+
+
+def test_redact_pdf_removes_pii_from_text_layer(tmp_path):
+    pymupdf = pytest.importorskip("pymupdf")
+    src = tmp_path / "doc.pdf"
+    pdf = pymupdf.open()
+    page = pdf.new_page()
+    page.insert_text((72, 72), "Email jane@example.com or call 555-123-4567.")
+    pdf.save(str(src))
+    pdf.close()
+
+    out = redact_file(src, use_ner=False)
+
+    with pymupdf.open(str(out)) as result:
+        text = "".join(p.get_text() for p in result)
+    assert "jane@example.com" not in text
+    assert "555-123-4567" not in text
+
+
+def test_redact_unsupported_extension_raises(tmp_path):
+    src = tmp_path / "data.xyz"
+    src.write_text("Email jane@example.com", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Unsupported file type"):
+        redact_file(src, use_ner=False)
 
 
 def test_redact_open_after_launches_the_output_file(tmp_path, monkeypatch):

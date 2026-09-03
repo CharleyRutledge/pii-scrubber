@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/pii-scrubber?logo=pypi&logoColor=white)](https://pypi.org/project/pii-scrubber/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pii-scrubber?logo=python&logoColor=white)](https://pypi.org/project/pii-scrubber/)
-[![License: MIT](https://img.shields.io/pypi/l/pii-scrubber)](LICENSE)
+[![License: MIT](https://img.shields.io/pypi/l/pii-scrubber)](https://github.com/CharleyRutledge/pii-scrubber/blob/main/LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/m61v0m5kun)
 
 A Python library for scrubbing personally identifiable information (PII)
@@ -13,19 +13,19 @@ under your control - an LLM chat tool, a support ticket, a shared drive.
 uploaded anywhere.** Detection is regex + a local, pretrained spaCy NER
 model doing inference only - it does not learn from, retain, or transmit
 your documents. You can read exactly what it does: pattern rules live in
-[`rules.py`](src/pii_scrubber/rules.py), NER logic in
-[`ner.py`](src/pii_scrubber/ner.py).
+[`rules.py`](https://github.com/CharleyRutledge/pii-scrubber/blob/main/src/pii_scrubber/rules.py), NER logic in
+[`ner.py`](https://github.com/CharleyRutledge/pii-scrubber/blob/main/src/pii_scrubber/ner.py).
 
 > **No PII scrubber is complete.** Regex and NER both have real blind
 > spots - see [Known limitations](#known-limitations) below, all of which
 > came from testing this against real documents. Spot-check the redacted
 > output before you rely on it, especially for anything sensitive.
 
-See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a step-by-step
+See [docs/USAGE_WALKTHROUGH.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/docs/USAGE_WALKTHROUGH.md) for a step-by-step
 CLI walkthrough with a recorded terminal session - generated straight from a
 real, passing run of the CLI (`tools/record_demo.py`), so the commands and
 output shown are genuine, not hand-written. See
-[CHANGELOG.md](CHANGELOG.md) for a full status report of what's covered
+[CHANGELOG.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/CHANGELOG.md) for a full status report of what's covered
 (document formats, languages tested, all 39 national ID formats, passport/
 health-insurance detection) and what's explicitly not implemented yet.
 
@@ -84,7 +84,7 @@ pii-scrubber menu                         # interactive menu - pick an action in
 pii-scrubber                              # (no command) also launches the menu
 ```
 
-See [docs/USAGE_WALKTHROUGH.md](docs/USAGE_WALKTHROUGH.md) for a full
+See [docs/USAGE_WALKTHROUGH.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/docs/USAGE_WALKTHROUGH.md) for a full
 recorded walkthrough of these commands against a real file.
 
 #### `pii-scrubber menu`
@@ -284,7 +284,7 @@ documents generated with [Faker](https://faker.readthedocs.io/) - see
 checksum-valid example for a country (it has gaps too - see the script's
 output for specifics), the rule is instead verified with a hand-computed
 test vector in `tests/test_national_ids.py`. More countries are welcome -
-see [CONTRIBUTING.md](CONTRIBUTING.md).
+see [CONTRIBUTING.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/CONTRIBUTING.md).
 
 Several of these are also commonly displayed with punctuation/spacing
 rather than as a bare digit run, confirmed against authoritative sources
@@ -330,7 +330,7 @@ please open an issue or PR.
   be caught.** The regex rules were built out against real US/Irish
   documents during development; a national ID format, postal code, or
   phone format from elsewhere may need its own rule - see
-  [CONTRIBUTING.md](CONTRIBUTING.md).
+  [CONTRIBUTING.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/CONTRIBUTING.md).
 - **Without `ocr=True`, PII baked into an image is invisible to the
   tool** - a photographed ID, a screenshot, a scanned signature. Only
   real text layers are scanned by default.
@@ -349,10 +349,10 @@ please open an issue or PR.
 pytest
 ```
 
-Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). For
-reporting a missed detection, see [SECURITY.md](SECURITY.md) (please don't
+Contributions welcome - see [CONTRIBUTING.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/CONTRIBUTING.md). For
+reporting a missed detection, see [SECURITY.md](https://github.com/CharleyRutledge/pii-scrubber/blob/main/SECURITY.md) (please don't
 post real documents or real PII in a public issue).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/CharleyRutledge/pii-scrubber/blob/main/LICENSE)

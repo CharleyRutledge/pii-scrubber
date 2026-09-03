@@ -64,6 +64,46 @@ _IPV6 = re.compile(r"\b(?:[A-Fa-f0-9]{1,4}:){2,7}[A-Fa-f0-9]{0,4}\b")
 # compact-only pattern silently missed a space-formatted IBAN entirely.
 _IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,3})?\b")
 
+# ISO 3166-1 alpha-2 country codes, used to validate the country position of
+# a BIC/SWIFT code so ordinary 8/11-char uppercase tokens don't false-match.
+_ISO_3166_ALPHA2 = frozenset(
+    "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI "
+    "BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN "
+    "CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK "
+    "FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM "
+    "HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN "
+    "KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK "
+    "ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP "
+    "NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW "
+    "SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF "
+    "TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI "
+    "VN VU WF WS YE YT ZA ZM ZW".split()
+)
+
+# BIC / SWIFT bank identifier code (ISO 9362): 4-letter institution code +
+# 2-letter ISO country code + 2-char location code, optionally + a 3-char
+# branch code (8 or 11 chars). Found unredacted next to the IBAN on a real
+# bank statement.
+#
+# Two guards against false positives, because the raw 8/11-char shape is
+# extremely collision-prone with ordinary ALL-CAPS words - e.g. "DATABASE"
+# (DATA+BA+SE, BA is Bosnia) and "RESEARCH" (RESE+AR+CH, AR is Argentina)
+# both fit the shape and carry a valid country code:
+#   1. The country position (chars 5-6) must be a real ISO 3166-1 code.
+#   2. A "BIC" or "SWIFT" label must appear just before the code.
+# Guard 2 is what actually makes this safe (guard 1 alone still matches
+# common words). Consequence: an unlabeled BIC in free text is not caught -
+# an accepted trade-off, since over-redacting every "DATABASE"/"RESEARCH"
+# in a technical document would be far worse (same lesson as the NER
+# tech-jargon over-redaction).
+_BIC = re.compile(r"\b[A-Z]{4}([A-Z]{2})[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b")
+# Matches a BIC/SWIFT label just before a candidate code, allowing common
+# variants: "BIC:", "SWIFT ", "SWIFT/BIC", "SWIFT code", "BIC/SWIFT code".
+_BIC_LABEL = re.compile(
+    r"(?:BIC|SWIFT)(?:[/\s-]*(?:BIC|SWIFT))?(?:[/\s-]*code)?[^A-Za-z0-9]{0,4}$",
+    re.IGNORECASE,
+)
+
 _MAC_ADDRESS = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 
 # Irish PPS Number: 7 digits + a checksum letter, optionally + a second
@@ -144,6 +184,16 @@ def _find_credit_cards(text: str) -> Iterator[re.Match]:
             yield m
 
 
+def _find_bics(text: str) -> Iterator[re.Match]:
+    for m in _BIC.finditer(text):
+        if m.group(1) not in _ISO_3166_ALPHA2:
+            continue
+        # Require a BIC/SWIFT label in the short window before the code.
+        preceding = text[max(0, m.start() - 24):m.start()]
+        if _BIC_LABEL.search(preceding):
+            yield m
+
+
 _SIMPLE_RULES = [
     ("EMAIL", _EMAIL),
     ("PHONE", _PHONE),
@@ -175,6 +225,11 @@ def find_regex_matches(text: str) -> list[EntityMatch]:
     for m in _find_credit_cards(text):
         matches.append(
             EntityMatch("CREDIT_CARD", m.group(), m.start(), m.end(), source="regex")
+        )
+
+    for m in _find_bics(text):
+        matches.append(
+            EntityMatch("BIC", m.group(), m.start(), m.end(), source="regex")
         )
 
     matches.extend(find_national_id_matches(text))

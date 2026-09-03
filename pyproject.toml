@@ -1,27 +1,31 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pii-scrubber"
-version = "0.1.0"
+version = "0.2.0"
 description = "Scrub personally identifiable information from documents using regex rules and spaCy NER."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Charley Rutledge" }]
 keywords = ["pii", "redaction", "privacy", "gdpr", "nlp", "spacy", "scrub"]
+# Note: no "License ::" trove classifier - PEP 639 deprecates it in favour
+# of the SPDX `license` expression above, and newer setuptools errors if
+# both are present.
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
     "Topic :: Text Processing :: Filters",
 ]
@@ -43,11 +47,23 @@ pii-scrubber = "pii_scrubber.cli:main"
 pdf = ["pymupdf>=1.24"]
 docx = ["python-docx>=1.1"]
 ocr = ["pytesseract>=0.3", "Pillow>=10.0"]
-all = ["pymupdf>=1.24", "python-docx>=1.1", "pytesseract>=0.3", "Pillow>=10.0"]
-dev = ["pytest>=7.4", "pymupdf>=1.24", "python-docx>=1.1", "pytesseract>=0.3", "Pillow>=10.0", "Faker>=20.0"]
+# `all` and `dev` reference the smaller extras rather than re-listing their
+# packages, so a version bump in one place can't silently drift out of sync.
+all = ["pii-scrubber[pdf,docx,ocr]"]
+dev = ["pii-scrubber[all]", "pytest>=7.4", "pytest-cov>=4.1", "Faker>=20.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["pii_scrubber"]
+# ocr.py needs a system Tesseract install that isn't available in CI, so it
+# can't be meaningfully unit-tested here; excluded so it doesn't drag the
+# reported number down for code we intentionally can't exercise.
+omit = ["*/ocr.py"]
+
+[tool.coverage.report]
+show_missing = true

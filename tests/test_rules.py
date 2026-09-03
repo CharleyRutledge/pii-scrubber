@@ -114,3 +114,41 @@ def test_iban_detected_with_conventional_spacing():
 
     compact = find_regex_matches("IBAN: DE89370400440532013000")
     assert any(m.label == "IBAN" and m.text == "DE89370400440532013000" for m in compact)
+
+
+def test_bic_detected_when_labelled():
+    # Regression: found unredacted next to the IBAN on a real bank
+    # statement ("BIC: REVOIE23").
+    for text, code in [
+        ("BIC: REVOIE23", "REVOIE23"),
+        ("SWIFT: BOFAUS3NXXX", "BOFAUS3NXXX"),
+        ("SWIFT code BARCGB22", "BARCGB22"),
+        ("BIC/SWIFT: CHASUS33", "CHASUS33"),
+    ]:
+        matches = find_regex_matches(text)
+        assert any(m.label == "BIC" and m.text == code for m in matches), text
+
+
+def test_bic_not_flagged_on_common_all_caps_words():
+    # The raw 8/11-char BIC shape collides with ordinary ALL-CAPS words that
+    # happen to carry a valid ISO country code in the country position -
+    # "DATABASE" (DATA+BA+SE, BA=Bosnia), "RESEARCH" (RESE+AR+CH,
+    # AR=Argentina). The BIC/SWIFT label requirement must keep these out.
+    text = "Our DATABASE is down while RESEARCH into DELIVERY continues."
+    matches = find_regex_matches(text)
+    assert not any(m.label == "BIC" for m in matches)
+
+
+def test_bic_requires_a_label_not_just_the_shape():
+    # An unlabelled token that fits the BIC shape is deliberately NOT caught,
+    # to avoid over-redacting ordinary uppercase codes/words. The label is
+    # what makes detection safe.
+    matches = find_regex_matches("The reference REVOIE23 was noted.")
+    assert not any(m.label == "BIC" for m in matches)
+
+
+def test_bic_invalid_country_code_rejected():
+    # Chars 5-6 must be a real ISO 3166-1 country code even with a label.
+    # "REVOZZ23" - ZZ is not an assigned country code.
+    matches = find_regex_matches("BIC: REVOZZ23")
+    assert not any(m.label == "BIC" for m in matches)
